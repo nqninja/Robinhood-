@@ -1,25 +1,11 @@
 """
-run_strategy.py — Daily execution script.
+run_strategy.py — Daily execution script for the Claude agent.
 
-Usage:
-    python run_strategy.py
+Wire to a scheduled trigger at 09:25 ET Mon–Fri (before market open)
+and again at 16:05 ET (after close) for exit checks.
 
-What it does:
-  1. Fetches historical bars for each symbol in WATCHLIST via Robinhood MCP.
-  2. Runs the EMA-pullback/RSI strategy scan.
-  3. For each signal, places a market buy order at the next open on the
-     Agentic account (628914509).
-  4. Prints a summary of orders placed.
-
-Wire this to a scheduled trigger (e.g. 09:30 ET Mon–Fri) to automate fully.
+The agent executes these steps using Robinhood MCP tools.
 """
-
-import asyncio
-import json
-from datetime import date, timedelta
-
-# MCP client would be injected in the agentic context; this script is designed
-# to be called by the Claude agent using the robinhood MCP tools directly.
 
 AGENTIC_ACCOUNT = "628914509"
 
@@ -29,61 +15,169 @@ WATCHLIST = [
     "HD", "PG", "MA", "COST", "LLY",
 ]
 
-# Strategy config mirrors account equity — update daily before running.
-# The agent will call get_portfolio to refresh this automatically.
-ACCOUNT_EQUITY = 100.00
-
-
 # ---------------------------------------------------------------------------
-# Instructions for the Claude agent executing this strategy
+# AGENT EXECUTION INSTRUCTIONS
 # ---------------------------------------------------------------------------
+
 AGENT_INSTRUCTIONS = """
-DAILY STRATEGY EXECUTION — EMA PULLBACK / RSI CONFIRMATION
+╔══════════════════════════════════════════════════════════════════════╗
+║          DAILY STRATEGY EXECUTION — FULL RULESET                    ║
+╚══════════════════════════════════════════════════════════════════════╝
 
-Run each market day before 09:30 ET (or immediately after open):
+Run this script TWICE per trading day:
+  • Morning  : 09:25 ET (5 min before open) → entry scan + exit pre-check
+  • Afternoon: 16:05 ET (5 min after close)  → exit check on closing prices
 
-STEP 1 — Refresh equity
-  Call get_portfolio(account_number="628914509") and update ACCOUNT_EQUITY.
+════════════════════════════════════════════════════════════════════════
+STEP 0 — REFRESH ACCOUNT STATE
+════════════════════════════════════════════════════════════════════════
+  a. get_portfolio(account_number="628914509")
+     → record account_equity and buying_power
+  b. get_equity_positions(account_number="628914509")
+     → record open positions and compute:
+         open_position_count = number of open lots
+         current_exposure    = sum(shares × current_price) for all open positions
+  c. Load or initialize DailyRiskState from storage:
+         daily_loss          (reset to 0.0 each morning)
+         consecutive_losses  (reset to 0 each morning)
 
-STEP 2 — Count open positions
-  Call get_equity_positions(account_number="628914509") and count open lots.
-  If open_positions >= 5, skip to STEP 5.
+════════════════════════════════════════════════════════════════════════
+STEP 1 — RISK GATE (check before anything else)
+════════════════════════════════════════════════════════════════════════
+  • If daily_loss >= account_equity × 0.03  → STOP. Do not trade today.
+  • If consecutive_losses >= 3              → STOP. Do not trade today.
+  Log the outcome.
 
-STEP 3 — Fetch bars
-  For each symbol in WATCHLIST call get_equity_historicals with:
-    interval="day", span="year" (gives ~252 bars).
+════════════════════════════════════════════════════════════════════════
+STEP 2 — MARKET FILTER (SPY)
+════════════════════════════════════════════════════════════════════════
+  get_equity_historicals(symbol="SPY", interval="day", span="year")
+  Compute 200-day EMA of closes (use ema() from strategy.py).
+  • If SPY close <= EMA200 → skip all new entries. Log reason.
+  • If SPY close >  EMA200 → proceed to entry scan.
 
-STEP 4 — Run scan
-  Import strategy.py and call run_daily_scan() with the bars.
-  For each Signal returned:
-    a. Call review_equity_order and present the review to the user.
-    b. If user confirms (or auto-confirmed), call place_equity_order:
+════════════════════════════════════════════════════════════════════════
+STEP 3 — EXIT CHECK (run every session, before entries)
+════════════════════════════════════════════════════════════════════════
+  For EACH open position retrieved in STEP 0:
+
+    a. get_equity_historicals(symbol=<symbol>, interval="day", span="year")
+    b. Import check_exits() from strategy.py and evaluate.
+    c. If ExitDecision returned:
+         i.  review_equity_order (present review to user if interactive).
+         ii. place_equity_order:
+               account_number = "628914509"
+               symbol         = position.symbol
+               side           = "sell"
+               type           = "market"
+               quantity       = exit_decision.shares_to_sell
+               time_in_force  = "gfd"
+         iii. Record PnL = (exit_price - entry_price) × shares_sold
+         iv.  Update DailyRiskState.record_trade(pnl)
+         v.   If is_partial=True → update position:
+                  shares_remaining -= shares_sold
+                  breakeven_stop = True
+                  stop_loss = entry_price  (move to breakeven)
+
+════════════════════════════════════════════════════════════════════════
+STEP 4 — EARNINGS FILTER
+════════════════════════════════════════════════════════════════════════
+  get_earnings_calendar() for the next 5 trading days.
+  Mark any symbol in WATCHLIST with earnings within 3 trading days
+  as earnings_within_3_days=True → skip in entry scan.
+
+════════════════════════════════════════════════════════════════════════
+STEP 5 — ENTRY SCAN (morning session only)
+════════════════════════════════════════════════════════════════════════
+  Skip entirely if:
+    • Risk gate failed (STEP 1)
+    • SPY filter failed (STEP 2)
+    • open_position_count >= 5
+    • current_exposure >= account_equity × 0.80
+
+  For each symbol in WATCHLIST (that isn't already held):
+    a. get_equity_historicals(symbol=<symbol>, interval="day", span="year")
+    b. Call check_entry() from strategy.py with all parameters.
+    c. Collect all Signal objects returned.
+
+  Sort signals by RSI proximity to 40 (lowest RSI = deepest pullback = first).
+  Take only as many signals as (5 - open_position_count) allows.
+
+  For each Signal:
+    a. review_equity_order → present review.
+    b. On confirmation, place_equity_order:
          account_number = "628914509"
          symbol         = signal.symbol
          side           = "buy"
          type           = "market"
          quantity       = signal.shares
          time_in_force  = "gfd"
-    c. Log the order_id and stop_loss price for tracking.
+    c. Record entry:
+         entry_price  = filled price (from order confirmation)
+         stop_loss    = signal.stop_loss
+         r_value      = signal.r_value
+         entry_atr    = ATR at entry
+         breakeven_stop = False
 
-STEP 5 — Manage exits (check every open position)
-  Call get_equity_positions(account_number="628914509").
-  For each position:
-    a. Get current quote via get_equity_quotes.
-    b. If current price <= stop_loss recorded at entry → place sell market order.
-    c. Optional trailing stop: if price > entry * 1.10 (10% profit),
-       raise stop to entry (break-even).
+════════════════════════════════════════════════════════════════════════
+STEP 6 — POSITION LOG (end of session)
+════════════════════════════════════════════════════════════════════════
+  Print a table for each open position:
+    Symbol | Entry | Current | Stop | Target½ | Shares | PnL $
 
-STEP 6 — Report
-  Print a summary: signals found, orders placed, positions closed.
+  Print daily summary:
+    New entries today | Exits today | Daily PnL | Consecutive losses
+
+════════════════════════════════════════════════════════════════════════
+POSITION STATE SCHEMA (persist between sessions)
+════════════════════════════════════════════════════════════════════════
+  Store as positions.json in the repo or a scratch file:
+
+  {
+    "account": "628914509",
+    "date": "YYYY-MM-DD",
+    "daily_loss": 0.0,
+    "consecutive_losses": 0,
+    "positions": [
+      {
+        "symbol": "AAPL",
+        "entry_price": 185.00,
+        "shares": 5,
+        "shares_remaining": 5,
+        "stop_loss": 182.00,
+        "breakeven_stop": false,
+        "r_value": 15.00,
+        "entry_atr": 3.00
+      }
+    ]
+  }
+
+  Reset daily_loss and consecutive_losses to 0 each morning.
+  Persist position updates after every order fill.
+"""
+
+RISK_CONTROLS_SUMMARY = """
+RISK CONTROLS SUMMARY
+─────────────────────
+  Max daily loss          : 3% of equity  (= $3.00 on $100 account)
+  Consecutive loss limit  : 3 trades → halt for the day
+  Max portfolio exposure  : 80%           (= $80.00 on $100 account)
+  Max per position        : 20%           (= $20.00 on $100 account)
+  Risk per trade          : 1%            (= $1.00 on $100 account)
+  Stop loss               : 2 × ATR(14) below entry
+  Take profit (first half): 2R
+  Remainder stop          : breakeven after first exit
+  Trailing stop (remainder): tighter of 3×ATR or 20-day EMA
+  Earnings blackout       : skip if earnings within 3 trading days
+  SPY filter              : no new longs if SPY < 200-day EMA
 """
 
 
 def main():
     print(AGENT_INSTRUCTIONS)
-    print("\nWATCHLIST:", ", ".join(WATCHLIST))
+    print(RISK_CONTROLS_SUMMARY)
+    print(f"WATCHLIST : {', '.join(WATCHLIST)}")
     print(f"ACCOUNT   : {AGENTIC_ACCOUNT}")
-    print(f"EQUITY    : ${ACCOUNT_EQUITY:.2f}  (refresh via get_portfolio before trading)")
 
 
 if __name__ == "__main__":
