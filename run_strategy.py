@@ -10,9 +10,11 @@ The agent executes these steps using Robinhood MCP tools.
 AGENTIC_ACCOUNT = "628914509"
 
 WATCHLIST = [
-    "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN",
-    "META", "TSLA", "JPM", "V", "UNH",
-    "HD", "PG", "MA", "COST", "LLY",
+    # Large-caps tradeable at $100 with 2% risk
+    "NVDA", "TSLA", "JPM", "BAC", "AMD",
+    # Mid-price liquid names ($10-$150)
+    "UBER", "PYPL", "SQ", "PLTR", "SOFI",
+    "ROKU", "SNAP", "INTC", "F", "AAL",
 ]
 
 # ---------------------------------------------------------------------------
