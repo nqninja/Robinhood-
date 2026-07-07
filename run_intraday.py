@@ -16,11 +16,12 @@ What it does:
 AGENTIC_ACCOUNT = "628914509"
 
 WATCHLIST = [
-    # Large-caps tradeable at $100 with 2% risk
-    "NVDA", "TSLA", "JPM", "BAC", "AMD",
-    # Mid-price liquid names ($10-$150)
-    "UBER", "PYPL", "SQ", "PLTR", "SOFI",
-    "ROKU", "SNAP", "INTC", "F", "AAL",
+    # Large-caps with uptrends
+    "NVDA", "TSLA", "JPM", "BAC", "INTC",
+    # Mid-price liquid growth names
+    "ROKU", "HOOD", "COIN", "MARA", "RIVN",
+    # Cheap high-volume names
+    "F", "AAL", "NIO", "SOFI", "PLTR",
 ]
 
 AGENT_INSTRUCTIONS = """
