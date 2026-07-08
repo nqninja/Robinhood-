@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "mcp__robinhood__get_equity_historicals",
       "mcp__robinhood__get_portfolio",
