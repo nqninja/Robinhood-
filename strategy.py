@@ -1,12 +1,19 @@
 """
-Daily Trading Strategy: EMA Pullback with RSI Confirmation
+Daily Trading Strategy: EMA Pullback + RSI Momentum
 
-Entry Conditions (all must be true):
+Entry Conditions — TWO triggers, either fires a signal:
+
+Trigger A — EMA20 Pullback (original, loosened):
   1. Price > 200-day EMA
   2. 50-day EMA > 200-day EMA
-  3. Price pulls back to 20-day EMA (±2% tolerance)
-  4. RSI(14) between 40 and 55
-  5. Today's close > previous day's high
+  3. Price within EMA20 band: EMA20 × 0.98  ≤ close ≤ EMA20 × 1.02
+  4. RSI(14) between 40 and 60
+
+Trigger B — RSI Momentum Cross:
+  1. Price > 200-day EMA
+  2. 50-day EMA > 200-day EMA
+  3. RSI crossed above 50 (was below 55 yesterday, above 50 today)
+  4. Close > EMA20 (uptrend confirmation)
 
 Stop Loss:
   2 × ATR(14) below entry price
@@ -109,9 +116,9 @@ class StrategyConfig:
     max_positions: int = 5
     max_position_pct: float = 0.20      # 20% per position
     max_portfolio_exposure_pct: float = 0.80  # 80% total
-    ema20_tolerance: float = 0.02       # 2% below 20 EMA allowed
+    ema20_tolerance: float = 0.02       # 2% band around EMA20
     rsi_low: float = 40.0
-    rsi_high: float = 55.0
+    rsi_high: float = 60.0              # widened from 55 → 60
     atr_stop_multiplier: float = 2.0    # stop = 2 × ATR below entry
     atr_trail_multiplier: float = 3.0   # trailing stop = 3 × ATR
     take_profit_r: float = 2.0          # first exit at 2R
@@ -236,19 +243,31 @@ def check_entry(
     cur_rsi = rsi_vals[-1]
     cur_atr = atr_vals[-1]
 
-    # --- Five entry conditions ---
+    # --- Shared prerequisites ---
     if today.close <= cur_ema200:
-        return None                                           # 1. above 200 EMA
+        return None                                           # must be above 200 EMA
     if cur_ema50 <= cur_ema200:
-        return None                                           # 2. 50 EMA > 200 EMA
+        return None                                           # 50 EMA must be above 200 EMA
+
+    # --- Trigger A: EMA20 pullback (loosened) ---
     lower_band = cur_ema20 * (1 - config.ema20_tolerance)
-    upper_band = cur_ema20 * 1.005
-    if not (lower_band <= today.close <= upper_band):
-        return None                                           # 3. pullback to 20 EMA
-    if not (config.rsi_low <= cur_rsi <= config.rsi_high):
-        return None                                           # 4. RSI 40-55
-    if today.close <= prev.high:
-        return None                                           # 5. close > prev high
+    upper_band = cur_ema20 * (1 + config.ema20_tolerance)
+    trigger_a = (lower_band <= today.close <= upper_band) and (config.rsi_low <= cur_rsi <= config.rsi_high)
+
+    # --- Trigger B: RSI momentum cross above 50 ---
+    prev_rsi_vals = rsi([b.close for b in bars[:-1]], 14)
+    prev_rsi = prev_rsi_vals[-1] if prev_rsi_vals else None
+    trigger_b = (
+        prev_rsi is not None
+        and prev_rsi < 55
+        and cur_rsi >= 50
+        and today.close > cur_ema20
+    )
+
+    if not (trigger_a or trigger_b):
+        return None
+
+    trigger_name = "A(pullback)" if trigger_a else "B(rsi_cross)"
 
     # --- Stop & sizing ---
     stop_distance = config.atr_stop_multiplier * cur_atr     # 2 × ATR
@@ -281,7 +300,7 @@ def check_entry(
         take_profit_half=round(take_profit_half, 4),
         r_value=round(r_value, 2),
         reason=(
-            f"close={today.close:.2f} ema20={cur_ema20:.2f} "
+            f"[{trigger_name}] close={today.close:.2f} ema20={cur_ema20:.2f} "
             f"ema50={cur_ema50:.2f} ema200={cur_ema200:.2f} "
             f"rsi={cur_rsi:.1f} atr={cur_atr:.2f} "
             f"stop={stop_loss:.2f} tp_half={take_profit_half:.2f}"
