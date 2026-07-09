@@ -4,5 +4,20 @@
   "daily_loss": 0.0,
   "consecutive_losses": 0,
   "intraday_trades_today": 0,
-  "positions": []
+  "positions": [
+    {
+      "type": "swing",
+      "symbol": "AAL",
+      "entry_price": 16.82,
+      "shares": 1,
+      "shares_remaining": 1,
+      "stop_loss": 15.06,
+      "breakeven_stop": false,
+      "r_value": 1.76,
+      "entry_atr": 0.88,
+      "entry_date": "2026-07-09",
+      "trigger": "A(pullback)",
+      "take_profit_half": 19.34
+    }
+  ]
 }
