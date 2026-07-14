@@ -21,22 +21,6 @@
     },
     {
       "type": "swing",
-      "symbol": "F",
-      "entry_price": 13.87,
-      "shares": 2,
-      "shares_remaining": 2,
-      "stop_loss": 12.9812,
-      "breakeven_stop": false,
-      "r_value": 2.04,
-      "entry_atr": 0.51,
-      "entry_date": "2026-07-14",
-      "trigger": "A(pullback)",
-      "take_profit_half": 16.0376,
-      "order_id": "6a55350d-9b97-468a-82b6-79ea8e9cf04a"
-    }
-    ,
-    {
-      "type": "swing",
       "symbol": "RIVN",
       "entry_price": 17.5099,
       "shares": 1,
