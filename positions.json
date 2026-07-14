@@ -1,6 +1,6 @@
 {
   "account": "628914509",
-  "date": "2026-07-13",
+  "date": "2026-07-14",
   "daily_loss": 0.0,
   "consecutive_losses": 0,
   "intraday_trades_today": 0,
@@ -22,7 +22,7 @@
     {
       "type": "swing",
       "symbol": "F",
-      "entry_price": 0.0,
+      "entry_price": 13.87,
       "shares": 2,
       "shares_remaining": 2,
       "stop_loss": 12.9812,
@@ -32,8 +32,7 @@
       "entry_date": "2026-07-14",
       "trigger": "A(pullback)",
       "take_profit_half": 16.0376,
-      "order_id": "6a55350d-9b97-468a-82b6-79ea8e9cf04a",
-      "pending_fill": true
+      "order_id": "6a55350d-9b97-468a-82b6-79ea8e9cf04a"
     }
   ]
 }
