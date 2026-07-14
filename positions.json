@@ -34,5 +34,22 @@
       "take_profit_half": 16.0376,
       "order_id": "6a55350d-9b97-468a-82b6-79ea8e9cf04a"
     }
+    ,
+    {
+      "type": "swing",
+      "symbol": "RIVN",
+      "entry_price": 0.0,
+      "shares": 1,
+      "shares_remaining": 1,
+      "stop_loss": 14.6755,
+      "breakeven_stop": false,
+      "r_value": 2.64,
+      "entry_atr": 1.32,
+      "entry_date": "2026-07-14",
+      "trigger": "B(rsi_cross)",
+      "take_profit_half": 22.579,
+      "order_id": "6a564101-8277-4d7c-8f74-47930ddf95f0",
+      "pending_fill": true
+    }
   ]
 }
