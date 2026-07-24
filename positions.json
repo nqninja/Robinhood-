@@ -1,26 +1,11 @@
 {
   "account": "628914509",
-  "date": "2026-07-20",
-  "last_eod_check": "2026-07-20",
+  "date": "2026-07-23",
+  "last_eod_check": "2026-07-23",
   "daily_loss": 1.73,
   "consecutive_losses": 1,
   "intraday_trades_today": 1,
   "positions": [
-    {
-      "type": "swing",
-      "symbol": "RIVN",
-      "entry_price": 17.5099,
-      "shares": 1,
-      "shares_remaining": 1,
-      "stop_loss": 14.6755,
-      "breakeven_stop": false,
-      "r_value": 2.64,
-      "entry_atr": 1.32,
-      "entry_date": "2026-07-14",
-      "trigger": "B(rsi_cross)",
-      "take_profit_half": 22.579,
-      "order_id": "6a564101-8277-4d7c-8f74-47930ddf95f0"
-    },
     {
       "type": "swing",
       "symbol": "ITUB",
