@@ -1,10 +1,10 @@
 {
   "account": "628914509",
-  "date": "2026-07-24",
-  "last_eod_check": "2026-07-24",
-  "daily_loss": 1.73,
-  "consecutive_losses": 1,
-  "intraday_trades_today": 1,
+  "date": "2026-07-28",
+  "last_eod_check": "2026-07-27",
+  "daily_loss": 0.0,
+  "consecutive_losses": 0,
+  "intraday_trades_today": 0,
   "positions": [
     {
       "type": "swing",
