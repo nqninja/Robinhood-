@@ -24,21 +24,6 @@
     },
     {
       "type": "swing",
-      "symbol": "VALE",
-      "entry_price": 14.62,
-      "shares": 7,
-      "shares_remaining": 7,
-      "stop_loss": 13.9744,
-      "breakeven_stop": false,
-      "r_value": 1.45,
-      "entry_atr": 0.36,
-      "entry_date": "2026-07-29",
-      "trigger": "A(pullback)",
-      "take_profit_half": 16.1511,
-      "order_id": "6a6a32ba-b326-4017-a81b-5171486d2826"
-    },
-    {
-      "type": "swing",
       "symbol": "PBR",
       "entry_price": 18.56,
       "shares": 4,
