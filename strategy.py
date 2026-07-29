@@ -112,10 +112,10 @@ class DailyRiskState:
 @dataclass
 class StrategyConfig:
     account_equity: float
-    risk_per_trade_pct: float = 0.02    # 2%
+    risk_per_trade_pct: float = 0.08    # 8%
     max_positions: int = 5
-    max_position_pct: float = 0.20      # 20% per position
-    max_portfolio_exposure_pct: float = 0.80  # 80% total
+    max_position_pct: float = 0.50      # 50% per position
+    max_portfolio_exposure_pct: float = 0.90  # 90% total
     ema20_tolerance: float = 0.02       # 2% band around EMA20
     rsi_low: float = 40.0
     rsi_high: float = 60.0              # widened from 55 → 60
