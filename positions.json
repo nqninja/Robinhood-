@@ -1,41 +1,15 @@
 {
   "account": "628914509",
   "date": "2026-07-30",
-  "last_eod_check": "2026-07-29",
+  "last_eod_check": "2026-07-30",
   "daily_loss": 0.0,
   "consecutive_losses": 0,
-  "intraday_trades_today": 2,
-  "watchlist": ["BAC", "WFC", "C", "FCX", "VALE", "PBR", "SOFI", "BBVA", "MARA", "HOOD", "ITUB"],
-  "positions": [
-    {
-      "type": "swing",
-      "symbol": "PBR",
-      "entry_price": 18.56,
-      "shares": 4,
-      "shares_remaining": 4,
-      "stop_loss": 17.1219,
-      "breakeven_stop": false,
-      "r_value": 1.9,
-      "entry_atr": 0.47,
-      "entry_date": "2026-07-29",
-      "trigger": "A(pullback)",
-      "take_profit_half": 19.9662,
-      "order_id": "6a6a32bb-9ecb-4166-8cc9-2d2565f00c75"
-    },
-    {
-      "type": "swing",
-      "symbol": "BAC",
-      "entry_price": 61.30,
-      "shares": 1,
-      "shares_remaining": 1,
-      "stop_loss": 58.6729,
-      "breakeven_stop": false,
-      "r_value": 2.40,
-      "entry_atr": 1.20,
-      "entry_date": "2026-07-30",
-      "trigger": "A(pullback)",
-      "take_profit_half": 65.8642,
-      "order_id": "6a6b51ae-ddf9-42ce-8b49-b384b596aa77"
-    }
-  ]
+  "intraday_trades_today": 4,
+  "strategy": "options_momentum",
+  "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB"],
+  "pending_morning": {
+    "note": "Full $220 cash in account after ITUB/BAC/PBR sells. Settled T+1 by 7/31 open.",
+    "plan": "Buy 4x SOFI $16.50c or $17c exp 8/7 at open if SOFI momentum intact. Re-scan if SOFI gaps >5% or loses momentum."
+  },
+  "positions": []
 }
