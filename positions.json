@@ -7,7 +7,11 @@
   "intraday_trades_today": 1,
   "strategy": "options_momentum",
   "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB"],
-  "pending_morning": null,
+  "pending_morning": {
+    "note": "$420 cash fully settled at 8/4 open. IONQ options passed — IV 122%, too expensive post-7.4% move. Scout fresh setups at open.",
+    "watchlist_focus": ["IONQ", "HOOD", "MARA", "SOFI", "PLTR", "RIVN"],
+    "plan": "Scan for momentum with lower IV. If IONQ holds above $39 and shows continuation, enter 1x $40c. Otherwise find fresher setup with IV < 80% and recent breakout."
+  },
   "positions": [],
   "trade_log": [
     {
