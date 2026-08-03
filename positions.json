@@ -8,7 +8,8 @@
   "strategy": "options_momentum",
   "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB"],
   "pending_morning": null,
-  "positions": [
+  "positions": [],
+  "trade_log": [
     {
       "symbol": "SOFI",
       "type": "option",
@@ -16,12 +17,15 @@
       "strike": 16.50,
       "expiration": "2026-08-07",
       "contracts": 4,
-      "limit_price": 0.37,
-      "break_even": 16.87,
-      "order_id": "6a6ca92c-380d-4526-8fc4-f7efb7aa7afd",
-      "order_state": "unconfirmed",
+      "entry_price": 0.36,
+      "exit_price": 0.86,
       "entry_date": "2026-07-31",
-      "notes": "Options momentum play. SOFI up 7.7% on 7/30, IV ~55%, clean momentum. Exit target: 50-100% gain or stop at 50% loss."
+      "exit_date": "2026-08-03",
+      "gross_pnl": 200.00,
+      "fees": 0.32,
+      "net_pnl": 199.68,
+      "return_pct": 138.9,
+      "exit_order_id": "6a70a019-99fd-448f-bb9f-8125af769d32"
     }
   ]
 }
