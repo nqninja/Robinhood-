@@ -12,7 +12,23 @@
     "watchlist_focus": ["IONQ", "HOOD", "MARA", "SOFI", "PLTR", "RIVN"],
     "plan": "Scan for momentum with lower IV. If IONQ holds above $39 and shows continuation, enter 1x $40c. Otherwise find fresher setup with IV < 80% and recent breakout."
   },
-  "positions": [],
+  "positions": [
+    {
+      "symbol": "IONQ",
+      "type": "option",
+      "option_type": "call",
+      "strike": 42.00,
+      "expiration": "2026-08-14",
+      "contracts": 1,
+      "limit_price": 2.95,
+      "break_even": 44.95,
+      "stop_loss_price": 1.475,
+      "order_id": "6a71ecc7-77eb-4d5b-8c81-e4f635551508",
+      "order_state": "unconfirmed",
+      "entry_date": "2026-08-04",
+      "notes": "IONQ 2-day momentum run (+6.6% day1, +5.5% day2). Quantum computing sector strength. Stop at 50% loss ($1.475), target 100% gain ($5.90)."
+    }
+  ],
   "trade_log": [
     {
       "symbol": "SOFI",
