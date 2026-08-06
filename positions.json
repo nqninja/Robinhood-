@@ -10,7 +10,7 @@
   "next_strategy": {
     "name": "SPY/QQQ 15-min ORB",
     "trigger": "after SOFI trade closes",
-    "setup": "Mark 9:30-9:45 high/low. Enter calls on break above, puts on break below. Confirm with volume. Stop at opposite ORB level.",
+    "setup": "Mark 9:30-9:45 high/low. Long calls: price breaks ORB high AND above VWAP. Long puts: price breaks ORB low AND below VWAP. If break and VWAP disagree — skip. Stop at opposite ORB level. Volume confirms.",
     "notes": "Need $300+ free cash. SPY 0DTE ATM contracts run $1-3 each. True 0DTE available daily on both."
   },
   "pending_morning": {
