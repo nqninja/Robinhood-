@@ -6,10 +6,16 @@
   "consecutive_losses": 0,
   "intraday_trades_today": 1,
   "strategy": "options_momentum",
-  "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN"],
+  "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN", "SOUN", "RDW", "CRWD", "LUNR"],
   "pending_morning": {
     "note": "$400 cash fully settled at 8/6 open. Goal: double to $800. Scan full watchlist at open using momentum criteria below.",
-    "watchlist_focus": ["NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "SOFI", "HOOD", "MARA", "IONQ"],
+    "watchlist_focus": ["SOUN", "RDW", "IONQ", "CRWD", "LUNR", "NVDA", "TSLA", "AMD", "META", "PLTR", "SOFI", "HOOD", "MARA"],
+    "premarket_movers": {
+      "SOUN": "+23% — SoundHound AI, likely earnings beat. Watch for gap-hold or VWAP pullback entry.",
+      "RDW": "+11% — Redwire space tech. Small cap, volatile.",
+      "IONQ": "+8.7% — post-earnings pop. IV crush risk, don't chase.",
+      "CRWD": "+1% — cybersecurity steady bid."
+    },
     "scan_criteria": {
       "relative_volume": ">2x average",
       "price_vs_vwap": "above VWAP",
