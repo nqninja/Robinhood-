@@ -6,11 +6,25 @@
   "consecutive_losses": 0,
   "intraday_trades_today": 1,
   "strategy": "options_momentum",
-  "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB"],
+  "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN"],
   "pending_morning": {
-    "note": "$420 cash fully settled at 8/4 open. IONQ options passed — IV 122%, too expensive post-7.4% move. Scout fresh setups at open.",
-    "watchlist_focus": ["IONQ", "HOOD", "MARA", "SOFI", "PLTR", "RIVN"],
-    "plan": "Scan for momentum with lower IV. If IONQ holds above $39 and shows continuation, enter 1x $40c. Otherwise find fresher setup with IV < 80% and recent breakout."
+    "note": "$400 cash fully settled at 8/6 open. Goal: double to $800. Scan full watchlist at open using momentum criteria below.",
+    "watchlist_focus": ["NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "SOFI", "HOOD", "MARA", "IONQ"],
+    "scan_criteria": {
+      "relative_volume": ">2x average",
+      "price_vs_vwap": "above VWAP",
+      "breakout_level": "breaking pre-market high or first 15-min high",
+      "price_action": "higher highs + higher lows on 5-min chart",
+      "options_flow": "increasing options volume",
+      "resistance": "no major resistance nearby"
+    },
+    "entry_rules": {
+      "iv_max": "< 80% preferred",
+      "contracts": "size for ~$150-200 risk max",
+      "expiration": "1-2 weeks out minimum",
+      "earnings_check": "MUST verify no earnings before expiration"
+    },
+    "plan": "At open: rank watchlist by relative volume and VWAP position. Top 1-2 names showing ORB breakout with increasing options volume get the trade. Target 100%+ gain, stop at 50% loss."
   },
   "positions": [],
   "trade_log": [
