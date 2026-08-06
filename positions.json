@@ -7,6 +7,12 @@
   "intraday_trades_today": 2,
   "strategy": "options_momentum",
   "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN", "SOUN", "RDW", "CRWD", "LUNR"],
+  "next_strategy": {
+    "name": "SPY/QQQ 15-min ORB",
+    "trigger": "after SOFI trade closes",
+    "setup": "Mark 9:30-9:45 high/low. Enter calls on break above, puts on break below. Confirm with volume. Stop at opposite ORB level.",
+    "notes": "Need $300+ free cash. SPY 0DTE ATM contracts run $1-3 each. True 0DTE available daily on both."
+  },
   "pending_morning": {
     "note": "$400 cash fully settled at 8/6 open. Goal: double to $800. Scan full watchlist at open using momentum criteria below.",
     "watchlist_focus": ["SOUN", "RDW", "IONQ", "CRWD", "LUNR", "NVDA", "TSLA", "AMD", "META", "PLTR", "SOFI", "HOOD", "MARA"],
