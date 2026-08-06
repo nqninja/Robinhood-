@@ -4,7 +4,7 @@
   "last_eod_check": "2026-07-30",
   "daily_loss": 0.0,
   "consecutive_losses": 0,
-  "intraday_trades_today": 1,
+  "intraday_trades_today": 2,
   "strategy": "options_momentum",
   "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN", "SOUN", "RDW", "CRWD", "LUNR"],
   "pending_morning": {
@@ -32,7 +32,22 @@
     },
     "plan": "At open: rank watchlist by relative volume and VWAP position. Top 1-2 names showing ORB breakout with increasing options volume get the trade. Target 100%+ gain, stop at 50% loss."
   },
-  "positions": [],
+  "positions": [
+    {
+      "symbol": "SOFI",
+      "type": "option",
+      "option_type": "call",
+      "strike": 19.00,
+      "expiration": "2026-08-14",
+      "contracts": 4,
+      "entry_price": 0.33,
+      "entry_date": "2026-08-06",
+      "cost_basis": 132.00,
+      "target_exit": 0.66,
+      "stop_loss": 0.165,
+      "notes": "SOFI reversed from -1.6% to +1% at open. Clean momentum reversal, IV ~50%, 8 days runway."
+    }
+  ],
   "trade_log": [
     {
       "symbol": "IONQ",
