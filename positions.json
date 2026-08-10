@@ -1,9 +1,9 @@
 {
   "account": "628914509",
-  "date": "2026-08-07",
+  "date": "2026-08-10",
   "last_eod_check": "2026-08-07",
-  "daily_loss": -72.00,
-  "consecutive_losses": 2,
+  "daily_loss": 0.0,
+  "consecutive_losses": 0,
   "intraday_trades_today": 1,
   "strategy": "SPY/QQQ 15-min ORB + VWAP",
   "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN", "SOUN", "RDW", "CRWD", "LUNR"],
@@ -34,7 +34,23 @@
     },
     "plan": "9:30-9:45: mark ORB high/low, note VWAP level. 9:45+: if price breaks ORB high AND is above VWAP → buy calls. If price breaks ORB low AND is below VWAP → buy puts. Target 80-100% gain, stop at 50% loss."
   },
-  "positions": [],
+  "positions": [
+    {
+      "symbol": "SPY",
+      "type": "option",
+      "option_type": "call",
+      "strike": 774.00,
+      "expiration": "2026-08-11",
+      "contracts": 1,
+      "entry_price": 1.83,
+      "entry_date": "2026-08-10",
+      "cost_basis": 183.00,
+      "target_exit": 3.66,
+      "stop_loss": 0.92,
+      "order_id": "6a79da9a-f06d-4325-a477-d78b8a9ea294",
+      "notes": "ORB + VWAP long. ORB high 773.63, VWAP 772.90, both confirmed. IV 10.6%, delta 0.48. Stop: SPY closes back below ORB high or VWAP. Target 100%."
+    }
+  ],
   "trade_log": [
     {
       "symbol": "IONQ",
