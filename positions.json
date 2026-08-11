@@ -1,17 +1,17 @@
 {
   "account": "628914509",
-  "date": "2026-08-10",
-  "last_eod_check": "2026-08-07",
+  "date": "2026-08-11",
+  "last_eod_check": "2026-08-11",
   "daily_loss": 0.0,
   "consecutive_losses": 0,
-  "intraday_trades_today": 1,
+  "intraday_trades_today": 0,
   "strategy": "SPY/QQQ 15-min ORB + VWAP",
   "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN", "SOUN", "RDW", "CRWD", "LUNR"],
   "next_strategy": {
     "name": "SPY/QQQ 15-min ORB",
     "trigger": "active — SOFI trade closed 8/7",
     "setup": "Mark 9:30-9:45 high/low. Long calls: price breaks ORB high AND above VWAP. Long puts: price breaks ORB low AND below VWAP. If break and VWAP disagree — skip. Stop at opposite ORB level. Volume confirms.",
-    "notes": "Account ~$215. SPY 0DTE ATM contracts run $1-3 each. True 0DTE available daily on both. Need $300+ for 0DTE — consider 1-2 DTE until account rebuilds."
+    "notes": "Account ~$210. SPY 1-2 DTE ATM contracts run $2-3 each. ORB high ($774.54) never broke on 8/11 — SPY chopped all morning in a $1.67 range. Discipline held, no bad trades. Need $300+ for 0DTE — use 1-2 DTE until account rebuilds."
   },
   "pending_morning": {
     "note": "~$215 cash. Next session: SPY/QQQ 15-min ORB + VWAP. Wait for 9:45 open range to set, then watch for breakout with VWAP confirmation.",
@@ -125,9 +125,9 @@
   ],
   "account_summary": {
     "starting_balance": 220.00,
-    "current_balance_approx": 215.00,
-    "total_realized_pnl": -33.36,
-    "win_rate": "1/4 trades (25%)",
+    "current_balance_approx": 210.41,
+    "total_realized_pnl": -42.40,
+    "win_rate": "1/5 trades (20%)",
     "best_trade": "SOFI 7/31: +$199.68 (+138.9%)",
     "lessons": [
       "Never buy at market open on a gap-up — wait for VWAP pullback and bounce",
