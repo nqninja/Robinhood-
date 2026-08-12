@@ -1,41 +1,92 @@
 {
   "account": "628914509",
   "date": "2026-08-12",
-  "last_eod_check": "2026-08-11",
-  "daily_loss": 0.0,
-  "consecutive_losses": 0,
-  "intraday_trades_today": 0,
-  "strategy": "SPY/QQQ 15-min ORB + VWAP",
-  "watchlist": ["SOFI", "MARA", "VALE", "BAC", "WFC", "C", "FCX", "PBR", "BBVA", "HOOD", "ITUB", "NVDA", "TSLA", "AMD", "META", "PLTR", "SHOP", "WBD", "RL", "EBAY", "IONQ", "RIVN", "SOUN", "RDW", "CRWD", "LUNR"],
-  "next_strategy": {
-    "name": "SPY/QQQ 15-min ORB",
-    "trigger": "active — SOFI trade closed 8/7",
-    "setup": "Mark 9:30-9:45 high/low. Long calls: price breaks ORB high AND above VWAP. Long puts: price breaks ORB low AND below VWAP. If break and VWAP disagree — skip. Stop at opposite ORB level. Volume confirms.",
-    "notes": "Account ~$210. SPY 1-2 DTE ATM contracts run $2-3 each. ORB high ($774.54) never broke on 8/11 — SPY chopped all morning in a $1.67 range. Discipline held, no bad trades. Need $300+ for 0DTE — use 1-2 DTE until account rebuilds."
+  "last_eod_check": "2026-08-12",
+  "daily_loss": -65.04,
+  "consecutive_losses": 4,
+  "intraday_trades_today": 1,
+  "strategy": "Cheap Momentum Swing — small account rebuild",
+  "account_summary": {
+    "starting_balance": 220.00,
+    "current_balance_approx": 188.31,
+    "buying_power": 75.37,
+    "unsettled": 112.94,
+    "total_realized_pnl": -107.44,
+    "win_rate": "1/6 trades (16.7%)",
+    "best_trade": "SOFI 7/31: +$199.68 (+138.9%)",
+    "post_mortem": {
+      "root_causes": [
+        "POSITION SIZING: SPY options at $178-183 on a $210 account = 85% of capital per trade. One loss = crippling.",
+        "MACRO DAY TRADING: Traded CPI day (8/12) and fought gap-up direction with puts. Macro overrode technicals.",
+        "WRONG VEHICLE: SPY 1-2 DTE options cost $1.50-2.50/contract — too expensive for <$200 account. No room for error.",
+        "CHEAP HIGH-IV TRADES: SOUN at 179-215% IV on 8/6 — paying massive premium, theta destroying position every hour.",
+        "TOO FREQUENT: 6 trades in 2 weeks. Only winner was the first SOFI swing which held 3 days with patience.",
+        "NO MACRO CALENDAR CHECK: Failed to treat CPI as a no-trade day despite gap-up + unpredictable reversal risk."
+      ],
+      "what_worked": "SOFI 7/31 swing: cheap options ($0.36), low IV (~50%), patient multi-day hold, clear catalyst, sized correctly at 4 contracts × $0.36 = $144 (65% of account but with defined risk)."
+    }
   },
-  "pending_morning": {
-    "note": "~$215 cash. Next session: SPY/QQQ 15-min ORB + VWAP. Wait for 9:45 open range to set, then watch for breakout with VWAP confirmation.",
-    "watchlist_focus": ["SPY", "QQQ", "SOFI", "SOUN", "IONQ", "CRWD", "NVDA", "TSLA", "AMD", "META", "PLTR"],
-    "scan_criteria": {
-      "relative_volume": ">2x average",
-      "price_vs_vwap": "above VWAP for longs, below VWAP for shorts",
-      "breakout_level": "breaking 9:30-9:45 ORB high (calls) or ORB low (puts)",
-      "price_action": "higher highs + higher lows on 5-min chart",
-      "options_flow": "increasing options volume",
-      "resistance": "no major resistance nearby"
+  "new_system": {
+    "name": "Cheap Momentum Swing",
+    "rationale": "At <$200 buying power, SPY options are too expensive. Need cheap contracts ($0.20-0.60) on lower-priced stocks with IV <80%, held 3-7 days, with a real catalyst. Max 1-2 trades per week.",
+    "hard_rules": {
+      "no_trade_days": ["CPI", "FOMC", "NFP", "PPI", "earnings day for the underlying", "day before earnings"],
+      "max_position_size": "25% of total account value per trade (at $188 = $47 max cost)",
+      "max_iv": "80% — no exceptions",
+      "min_dte": "5 days minimum — no 0DTE or 1DTE until account > $500",
+      "stop_loss": "35% of premium paid",
+      "profit_target": "80% minimum — do not hold through fading momentum",
+      "max_trades_per_week": 2,
+      "account_floor": "If buying power < $50 — NO new trades, period. Protect the last bit."
     },
-    "entry_rules": {
-      "iv_max": "< 80% preferred",
-      "contracts": "size for ~$100-150 risk max given account size",
-      "expiration": "1-2 DTE minimum until account >$300; then 0DTE ok",
-      "earnings_check": "MUST verify no earnings before expiration",
-      "vwap_rule": "MUST agree with ORB direction — if they disagree, skip the trade",
-      "gap_rule": "Never buy at market open on gap-up; wait for VWAP pullback and bounce confirmation"
+    "universe": {
+      "primary": ["SOFI", "MARA", "IONQ", "RIVN", "SOUN"],
+      "rationale": "Options trade $0.10-0.80/contract. At $47 max spend, can buy 1-4 contracts. Enough size to matter without blowing the account.",
+      "avoid": ["SPY", "QQQ", "NVDA", "AMD", "META", "PLTR", "TSLA"],
+      "avoid_reason": "Options too expensive ($1.50-5.00+/contract) for this account size"
     },
-    "plan": "9:30-9:45: mark ORB high/low, note VWAP level. 9:45+: if price breaks ORB high AND is above VWAP → buy calls. If price breaks ORB low AND is below VWAP → buy puts. Target 80-100% gain, stop at 50% loss."
+    "entry_checklist": [
+      "NOT a macro event day (check economic calendar first)",
+      "NOT within 5 days of earnings for the underlying",
+      "IV < 80% confirmed via option quote",
+      "Stock showing clear momentum: up >3% on day OR breaking multi-week resistance",
+      "Entry AFTER 10am — never at market open",
+      "Price above VWAP for calls, below VWAP for puts",
+      "Volume > 1.5x average for the stock",
+      "Option cost ≤ 25% of current buying power (currently ≤ $18/contract)",
+      "Clear catalyst (sector momentum, news, technical breakout) — not just 'looks good'"
+    ],
+    "sizing": {
+      "current_buying_power": 75.37,
+      "max_per_trade": 18.84,
+      "note": "At $75 buying power, max $18/trade. This means $0.18 options × 1 contract, or $0.09 × 2 contracts. VERY limited. Consider depositing to rebuild before trading again."
+    },
+    "suggested_path": {
+      "option_1": "Deposit $100-200 to get buying power to $175-275, then trade 1x per week max with $40-50 per trade.",
+      "option_2": "Wait for $75 unsettled to settle (8/13), then have ~$188 total. Max per trade = $47. Only trade A+ setups.",
+      "option_3": "Paper trade for 2 weeks to test new system before risking real money."
+    }
   },
   "positions": [],
   "trade_log": [
+    {
+      "symbol": "SPY",
+      "type": "option",
+      "option_type": "put",
+      "strike": 771.00,
+      "expiration": "2026-08-13",
+      "contracts": 1,
+      "entry_price": 1.78,
+      "exit_price": 1.13,
+      "entry_date": "2026-08-12",
+      "exit_date": "2026-08-12",
+      "gross_pnl": -65.00,
+      "fees": 0.04,
+      "net_pnl": -65.04,
+      "return_pct": -36.5,
+      "exit_order_id": "6a7ca59e-d1df-4b42-b47e-fa750f7c24ec",
+      "notes": "ORB low ($772.36) broke on 10:00 bar close. VWAP confirmed bearish. BUT: CPI day gap-up — macro was bullish. SPY reversed hard once institutional buyers stepped in. Lesson: on macro event gap-up days, DO NOT trade puts regardless of chart. The gap direction is the macro verdict and it wins. Cost: $178, recovered $113. Net -$65."
+    },
     {
       "symbol": "SPY",
       "type": "option",
@@ -52,7 +103,7 @@
       "net_pnl": -9.04,
       "return_pct": -4.9,
       "exit_order_id": "6a79e80e-9ce8-492d-bcfc-ac0b1fc2e6d3",
-      "notes": "ORB + VWAP breakout entry at 10am. SPY ran to $2.47 (+35%) then faded back below entry. Cut manually when SPY broke back through VWAP. Small loss, good discipline."
+      "notes": "ORB + VWAP breakout entry at 10am. SPY ran to $2.47 (+35%) then faded back below entry. Cut manually when SPY broke back through VWAP. Small loss, good discipline. Problem: SPY options too expensive for this account regardless."
     },
     {
       "symbol": "IONQ",
@@ -69,7 +120,7 @@
       "fees": 0.08,
       "net_pnl": -40.08,
       "return_pct": -14.5,
-      "notes": "Exited before earnings (IONQ reported 8/5 after close). Momentum trade, not earnings play."
+      "notes": "Exited before earnings (IONQ reported 8/5 after close). Momentum trade. Problem: $275 cost = too large for account size. Should have been 1 contract at $0.50-0.80 strike, not $2.75."
     },
     {
       "symbol": "SOFI",
@@ -86,7 +137,8 @@
       "fees": 0.32,
       "net_pnl": 199.68,
       "return_pct": 138.9,
-      "exit_order_id": "6a70a019-99fd-448f-bb9f-8125af769d32"
+      "exit_order_id": "6a70a019-99fd-448f-bb9f-8125af769d32",
+      "notes": "THE TEMPLATE TRADE. Cheap options ($0.36), IV ~50%, held 3 days, clear momentum, patient. This is the model for the new system."
     },
     {
       "symbol": "SOUN",
@@ -103,7 +155,7 @@
       "fees": 0.64,
       "net_pnl": -120.64,
       "return_pct": -75.0,
-      "notes": "Entered at market open on +24% gap — chased the gap. Stock faded immediately. Lesson: never buy at open on gap-up; wait for VWAP pullback and bounce. IV was 179-215% (way too high)."
+      "notes": "Entered at market open on +24% gap — chased the gap. Stock faded immediately. IV 179-215% — way too high, violated the <80% rule hard. Worst trade of the account."
     },
     {
       "symbol": "SOFI",
@@ -122,18 +174,5 @@
       "return_pct": -54.5,
       "notes": "SOFI reversed from -1.6% to +1% at open 8/6, IV ~50%, 8 days runway. Stock dumped overnight 8/7. Stop at $0.165 hit at $0.155, closed at $0.15."
     }
-  ],
-  "account_summary": {
-    "starting_balance": 220.00,
-    "current_balance_approx": 210.41,
-    "total_realized_pnl": -42.40,
-    "win_rate": "1/5 trades (20%)",
-    "best_trade": "SOFI 7/31: +$199.68 (+138.9%)",
-    "lessons": [
-      "Never buy at market open on a gap-up — wait for VWAP pullback and bounce",
-      "IV >100% means premium is sky-high; prefer IV <80%",
-      "ORB + VWAP filter removes most bad entries",
-      "Earnings avoidance is non-negotiable"
-    ]
-  }
+  ]
 }
