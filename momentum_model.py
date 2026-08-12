@@ -346,19 +346,27 @@ def score_orb_breakout(
 ) -> tuple[int, str, list[str]]:
     """
     Score an ORB breakout. Returns (score, direction, rationale).
-    direction: "calls" or "puts"
+    direction: "calls" or "puts" — only meaningful if score >= 70.
 
-    anchored_vwap: pass calc_anchored_vwap(prev_day_bars, today_bars) for
-    stronger confluence. Price on the right side of prev-day AVWAP = institutional
-    agreement. Wrong side = additional red flag.
+    HARD CONFLUENCE GATE (runs before scoring):
+    All four signals must agree with the breakout direction or the trade
+    is blocked (score forced to 0). No exceptions, no overrides by volume.
 
-    Weights (100 pts base + bonuses):
-      - ORB + intraday VWAP agreement  : 35 pts  (was 40 — 5 reallocated to AVWAP)
-      - Gap alignment                  : 15 pts
-      - Breakout bar volume            : 20 pts
-      - ORB range quality              : 15 pts
-      - Volume profile                 : 10 pts
-      - Anchored VWAP confluence       : ±10 pts bonus/penalty
+      Signal 1: ORB direction        (broke high → calls; broke low → puts)
+      Signal 2: Intraday VWAP        (price above → bullish; below → bearish)
+      Signal 3: Prev-day AVWAP       (price above → bullish; below → bearish)
+      Signal 4: Gap direction        (gap up → bullish; gap down → bearish;
+                                      flat ±0.1% = neutral, does not block)
+
+    If anchored_vwap is not provided, Signal 3 is skipped (only 3 required).
+
+    Scoring (only reached if confluence passes):
+      - Intraday VWAP confirm   : 30 pts
+      - Prev-day AVWAP confirm  : 20 pts
+      - Gap confirm             : 15 pts
+      - Breakout bar volume     : 20 pts
+      - ORB range quality       : 15 pts
+      - Volume profile bonus    : up to +10 pts
     """
     score = 0
     rationale = []
@@ -369,62 +377,70 @@ def score_orb_breakout(
     above_vwap = current_price > vwap
     direction = "calls" if broke_high else "puts"
 
-    # Direction alignment check — ORB + intraday VWAP (35 pts)
-    if broke_high and above_vwap:
-        score += 35
-        rationale.append("ORB high broken AND above intraday VWAP — signals agree (35pts)")
-    elif broke_low and not above_vwap:
-        score += 35
-        rationale.append("ORB low broken AND below intraday VWAP — signals agree (35pts)")
-    elif broke_high and not above_vwap:
-        score -= 30
-        rationale.append("CONFLICT: ORB high broken but BELOW intraday VWAP — skip this (-30pts)")
-    elif broke_low and above_vwap:
-        score -= 30
-        rationale.append("CONFLICT: ORB low broken but ABOVE intraday VWAP — skip this (-30pts)")
-    else:
-        score += 0
-        rationale.append("No ORB break yet (0pts)")
+    # ── HARD CONFLUENCE GATE ─────────────────────────────────────────────────
+    # Every signal that exists must agree. One conflict = 0, no trade.
 
-    # Anchored VWAP (prev-day) confluence (±10 pts bonus/penalty)
+    conflicts = []
+
+    # No ORB break at all
+    if not broke_high and not broke_low:
+        rationale.append("No ORB break yet — wait")
+        return 0, direction, rationale
+
+    # Signal 2: intraday VWAP
+    vwap_agrees = (broke_high and above_vwap) or (broke_low and not above_vwap)
+    if not vwap_agrees:
+        conflicts.append(
+            f"Intraday VWAP (${vwap:.2f}) opposes {direction} — "
+            f"price {'above' if above_vwap else 'below'} VWAP on {'call' if broke_high else 'put'} break"
+        )
+
+    # Signal 3: prev-day anchored VWAP
     if anchored_vwap and anchored_vwap > 0:
         above_avwap = current_price > anchored_vwap
-        if broke_high and above_avwap:
-            score += 10
-            rationale.append(
-                f"Above prev-day AVWAP (${anchored_vwap:.2f}) — institutional bulls in control (+10pts)"
+        avwap_agrees = (broke_high and above_avwap) or (broke_low and not above_avwap)
+        if not avwap_agrees:
+            conflicts.append(
+                f"Prev-day AVWAP (${anchored_vwap:.2f}) opposes {direction} — "
+                f"price {'above' if above_avwap else 'below'} AVWAP on {'call' if broke_high else 'put'} break"
             )
-        elif broke_low and not above_avwap:
-            score += 10
-            rationale.append(
-                f"Below prev-day AVWAP (${anchored_vwap:.2f}) — institutional sellers in control (+10pts)"
-            )
-        elif broke_high and not above_avwap:
-            score -= 10
-            rationale.append(
-                f"AVWAP CONFLICT: ORB high broken but BELOW prev-day AVWAP (${anchored_vwap:.2f}) — weak breakout (-10pts)"
-            )
-        elif broke_low and above_avwap:
-            score -= 10
-            rationale.append(
-                f"AVWAP CONFLICT: ORB low broken but ABOVE prev-day AVWAP (${anchored_vwap:.2f}) — weak breakdown (-10pts)"
-            )
-    else:
-        rationale.append("Anchored VWAP not provided — skipping AVWAP check")
 
-    # Gap alignment (15 pts)
-    if broke_high and gap_pct >= 0:
+    # Signal 4: gap direction (only flag meaningful gaps ≥ 0.1%)
+    gap_conflict = (broke_high and gap_pct < -0.001) or (broke_low and gap_pct > 0.001)
+    if gap_conflict:
+        conflicts.append(
+            f"Gap direction ({gap_pct:+.2%}) opposes {direction} — "
+            f"{'gap-down on call break' if broke_high else 'gap-up on put break'}"
+        )
+
+    if conflicts:
+        rationale.append(f"⛔ CONFLUENCE GATE FAILED — {len(conflicts)} conflict(s):")
+        rationale.extend(f"  ✗ {c}" for c in conflicts)
+        rationale.append("Score forced to 0. All signals must agree before entry.")
+        return 0, direction, rationale
+
+    rationale.append(f"✅ Confluence gate passed — all signals agree ({direction})")
+
+    # ── SCORING (only reached when all signals agree) ─────────────────────────
+
+    # Intraday VWAP confirm (30 pts)
+    score += 30
+    rationale.append(f"Intraday VWAP (${vwap:.2f}) confirms direction (30pts)")
+
+    # Prev-day AVWAP confirm (20 pts)
+    if anchored_vwap and anchored_vwap > 0:
+        score += 20
+        rationale.append(f"Prev-day AVWAP (${anchored_vwap:.2f}) confirms direction (20pts)")
+    else:
+        rationale.append("Prev-day AVWAP not provided — 0pts (provide for full score)")
+
+    # Gap direction (15 pts) — gap flat/neutral still gets partial credit
+    if abs(gap_pct) <= 0.001:
+        score += 8
+        rationale.append(f"Gap flat ({gap_pct:+.2%}) — neutral, no macro headwind (8pts)")
+    else:
         score += 15
-        rationale.append(f"Gap confirms call direction: +{gap_pct:.1%} gap (15pts)")
-    elif broke_low and gap_pct <= 0:
-        score += 15
-        rationale.append(f"Gap confirms put direction: {gap_pct:.1%} gap (15pts)")
-    elif broke_high and gap_pct < -0.005:
-        score -= 10
-        rationale.append(f"Gap-DOWN on call breakout — fighting macro (-10pts)")
-    elif broke_low and gap_pct > 0.005:
-        score -= 10
-        rationale.append(f"Gap-UP on put breakout — fighting macro (-10pts)")
+        rationale.append(f"Gap confirms direction ({gap_pct:+.2%}) (15pts)")
 
     # Breakout bar volume (20 pts)
     vol_ratio = bar_volume / avg_bar_volume if avg_bar_volume > 0 else 1
@@ -438,11 +454,10 @@ def score_orb_breakout(
         score += 5
         rationale.append(f"Modest breakout volume: {vol_ratio:.1f}x avg (5pts)")
     else:
-        score -= 10
-        rationale.append(f"Low breakout volume: {vol_ratio:.1f}x — no conviction (-10pts)")
+        score += 0
+        rationale.append(f"Weak breakout volume: {vol_ratio:.1f}x — low conviction (0pts)")
 
-    # ORB range quality (15 pts) — tight range = cleaner signal
-    # A good ORB range is 0.1–0.4% of price
+    # ORB range quality (15 pts)
     range_pct = orb_range / ((orb_high + orb_low) / 2)
     if range_pct <= 0.003:
         score += 15
@@ -452,28 +467,25 @@ def score_orb_breakout(
         rationale.append(f"Normal ORB: {range_pct:.2%} range (8pts)")
     else:
         score += 0
-        rationale.append(
-            f"Wide ORB: {range_pct:.2%} — CPI/news artifact, unreliable (0pts)"
-        )
+        rationale.append(f"Wide ORB: {range_pct:.2%} — choppy open, low confidence (0pts)")
 
-    # Volume profile (10 pts)
+    # Volume profile bonus (up to +10 pts)
     if vp:
         if vp.price_in_lvn(current_price):
             score += 10
             rationale.append("Price in LVN — fast extension expected (+10pts)")
         nearest_hvn = vp.nearest_hvn(current_price)
         if nearest_hvn:
-            dist = abs(nearest_hvn - current_price)
-            dist_pct = dist / current_price
+            dist_pct = abs(nearest_hvn - current_price) / current_price
             if dist_pct < 0.005:
                 score -= 10
-                rationale.append(f"HVN wall at ${nearest_hvn:.2f} — breakout may stall (-10pts)")
+                rationale.append(f"HVN wall at ${nearest_hvn:.2f} immediately ahead — may stall (-10pts)")
             elif broke_high and nearest_hvn > current_price:
                 score += 5
-                rationale.append(f"Next HVN at ${nearest_hvn:.2f} gives upside target (+5pts)")
+                rationale.append(f"Next HVN at ${nearest_hvn:.2f} = upside target (+5pts)")
             elif broke_low and nearest_hvn < current_price:
                 score += 5
-                rationale.append(f"Next HVN at ${nearest_hvn:.2f} gives downside target (+5pts)")
+                rationale.append(f"Next HVN at ${nearest_hvn:.2f} = downside target (+5pts)")
 
     return max(0, min(100, score)), direction, rationale
 
@@ -802,6 +814,40 @@ if __name__ == "__main__":
 
     sizing = model.size_position(option_ask=0.36)
     print(f"\nPosition sizing: {sizing}")
+
+    # ORB confluence test — all signals agree (should pass gate and score high)
+    print("\n--- ORB confluence: all agree (should pass) ---")
+    score, direction, rationale = score_orb_breakout(
+        symbol="SOFI",
+        current_price=16.80,
+        orb_high=16.60,
+        orb_low=16.20,
+        vwap=16.55,
+        bar_volume=500_000,
+        avg_bar_volume=200_000,
+        gap_pct=0.008,
+        anchored_vwap=16.40,
+    )
+    print(f"Score: {score}/100 | Direction: {direction}")
+    for r in rationale:
+        print(f"  {r}")
+
+    # ORB confluence test — AVWAP conflict (should be blocked at gate)
+    print("\n--- ORB confluence: AVWAP conflict (should be blocked) ---")
+    score, direction, rationale = score_orb_breakout(
+        symbol="SOFI",
+        current_price=16.80,
+        orb_high=16.60,
+        orb_low=16.20,
+        vwap=16.55,
+        bar_volume=500_000,
+        avg_bar_volume=200_000,
+        gap_pct=0.008,
+        anchored_vwap=17.10,  # price BELOW prev-day AVWAP on a call break = conflict
+    )
+    print(f"Score: {score}/100 | Direction: {direction}")
+    for r in rationale:
+        print(f"  {r}")
 
     # Simulate today's bad SPY put trade — should fail filters
     print("\n--- SPY put 8/12 (should fail) ---")
