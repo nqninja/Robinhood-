@@ -405,12 +405,17 @@ def score_orb_breakout(
                 f"price {'above' if above_avwap else 'below'} AVWAP on {'call' if broke_high else 'put'} break"
             )
 
-    # Signal 4: gap direction (only flag meaningful gaps ≥ 0.1%)
-    gap_conflict = (broke_high and gap_pct < -0.001) or (broke_low and gap_pct > 0.001)
+    # Signal 4: gap direction — only hard-block on significant macro gaps (≥0.4%)
+    # Small gaps (< 0.4%) are noise, not a real headwind. The 8/12 CPI gap was +0.8%.
+    GAP_BLOCK_THRESHOLD = 0.004
+    gap_conflict = (
+        (broke_high and gap_pct < -GAP_BLOCK_THRESHOLD) or
+        (broke_low and gap_pct > GAP_BLOCK_THRESHOLD)
+    )
     if gap_conflict:
         conflicts.append(
-            f"Gap direction ({gap_pct:+.2%}) opposes {direction} — "
-            f"{'gap-down on call break' if broke_high else 'gap-up on put break'}"
+            f"Significant gap ({gap_pct:+.2%}) opposes {direction} — "
+            f"{'gap-down on call break' if broke_high else 'gap-up on put break'} (macro headwind)"
         )
 
     if conflicts:
@@ -434,13 +439,20 @@ def score_orb_breakout(
     else:
         rationale.append("Prev-day AVWAP not provided — 0pts (provide for full score)")
 
-    # Gap direction (15 pts) — gap flat/neutral still gets partial credit
-    if abs(gap_pct) <= 0.001:
-        score += 8
-        rationale.append(f"Gap flat ({gap_pct:+.2%}) — neutral, no macro headwind (8pts)")
-    else:
+    # Gap direction (15 pts)
+    # Confirms direction: full 15pts. Small/flat: 8pts. Modest opposing: 4pts.
+    # Large opposing gaps (≥0.4%) already blocked at gate — won't reach here.
+    gap_confirms = (broke_high and gap_pct >= 0.001) or (broke_low and gap_pct <= -0.001)
+    gap_flat = abs(gap_pct) < 0.001
+    if gap_confirms:
         score += 15
         rationale.append(f"Gap confirms direction ({gap_pct:+.2%}) (15pts)")
+    elif gap_flat:
+        score += 8
+        rationale.append(f"Gap flat ({gap_pct:+.2%}) — neutral (8pts)")
+    else:
+        score += 4
+        rationale.append(f"Small opposing gap ({gap_pct:+.2%}) — minor headwind, passed gate (4pts)")
 
     # Breakout bar volume (20 pts)
     vol_ratio = bar_volume / avg_bar_volume if avg_bar_volume > 0 else 1
