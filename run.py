@@ -64,6 +64,8 @@ STEP M4 — MOMENTUM SWING SCAN  (Setup A)
   b. get_equity_historicals(symbols=[sym], interval="5minute",
        start_time=<today 9:30 ET UTC>, end_time=<now>)
      Compute VWAP via model.calc_vwap(bars)
+     Compute anchored VWAP via model.calc_anchored_vwap(yesterday_5min_bars, bars)
+       → yesterday_5min_bars: interval="5minute", start=<yesterday 9:30 ET>, end=<yesterday 16:00 ET>
 
   c. get_option_chains(underlying_symbol=sym)
      → find soonest expiration with 7–14 DTE
@@ -98,10 +100,13 @@ STEP M4 — MOMENTUM SWING SCAN  (Setup A)
 
 STEP M5 — ORB SETUP PREP  (for Session 2)
   Note today's SPY/QQQ pre-market price vs yesterday close (gap_pct).
-  Build volume profile from yesterday's 5-min bars:
+  Fetch yesterday's 5-min bars (9:30–16:00 ET):
+    get_equity_historicals(symbols=[sym], interval="5minute",
+      start_time=<yesterday 9:30 ET>, end_time=<yesterday 16:00 ET>)
+  Build volume profile:
     vp = model.build_volume_profile(yesterday_bars)
   Log HVN zones, LVN zones, POC.
-  Record: gap_pct, vp → used in Session 2 scoring.
+  Record: gap_pct, vp, yesterday_5min_bars → all three used in Session 2 scoring.
 
 ════════════════════════════════════════════════════════════════════════
 SESSION 2: ORB MONITORING  (9:30–11:00 AM ET, check every 5 min)
@@ -119,6 +124,7 @@ STEP O2 — AFTER 9:45: CHECK EACH NEW BAR CLOSE
     current_price = current_bar.close_price
 
     vwap = model.calc_vwap(all_bars_so_far)
+    anchored_vwap = model.calc_anchored_vwap(yesterday_5min_bars, all_bars_so_far)
 
     bar_volume = current_bar.volume
     avg_bar_volume = mean(volume for bar in first_6_bars_of_day)  # 9:30–10:00
@@ -131,8 +137,9 @@ STEP O2 — AFTER 9:45: CHECK EACH NEW BAR CLOSE
         vwap=vwap,
         bar_volume=bar_volume,
         avg_bar_volume=avg_bar_volume,
-        gap_pct=gap_pct,       # from Session 1
-        vp=vp,                 # from Session 1
+        gap_pct=gap_pct,           # from Session 1
+        vp=vp,                     # from Session 1
+        anchored_vwap=anchored_vwap,  # prev-day anchored VWAP
     )
 
     If score >= 70:

@@ -118,6 +118,19 @@ def calc_vwap(bars: list[dict]) -> float:
     return cum_tpv / cum_vol if cum_vol > 0 else 0.0
 
 
+def calc_anchored_vwap(prev_day_bars: list[dict], today_bars: list[dict]) -> float:
+    """
+    Anchored VWAP starting from yesterday's open bar through current bar.
+
+    Pass yesterday's 5-min bars + today's 5-min bars so far.
+    The anchor point is the first bar of the previous session (9:30 yesterday).
+    This level acts as a multi-session equilibrium — stronger than intraday VWAP.
+
+    Returns 0.0 if no bars provided.
+    """
+    return calc_vwap(prev_day_bars + today_bars)
+
+
 # ---------------------------------------------------------------------------
 # Volume profile from daily bars
 # ---------------------------------------------------------------------------
@@ -325,14 +338,27 @@ def score_orb_breakout(
     orb_high: float,
     orb_low: float,
     vwap: float,
-    bar_volume: float,    # volume on the breakout bar
+    bar_volume: float,      # volume on the breakout bar
     avg_bar_volume: float,  # average 5-min bar volume
-    gap_pct: float,       # today's gap vs yesterday close (positive = gap up)
+    gap_pct: float,         # today's gap vs yesterday close (positive = gap up)
     vp: Optional[VolumeProfile] = None,
+    anchored_vwap: Optional[float] = None,  # prev-day anchored VWAP
 ) -> tuple[int, str, list[str]]:
     """
     Score an ORB breakout. Returns (score, direction, rationale).
     direction: "calls" or "puts"
+
+    anchored_vwap: pass calc_anchored_vwap(prev_day_bars, today_bars) for
+    stronger confluence. Price on the right side of prev-day AVWAP = institutional
+    agreement. Wrong side = additional red flag.
+
+    Weights (100 pts base + bonuses):
+      - ORB + intraday VWAP agreement  : 35 pts  (was 40 — 5 reallocated to AVWAP)
+      - Gap alignment                  : 15 pts
+      - Breakout bar volume            : 20 pts
+      - ORB range quality              : 15 pts
+      - Volume profile                 : 10 pts
+      - Anchored VWAP confluence       : ±10 pts bonus/penalty
     """
     score = 0
     rationale = []
@@ -343,22 +369,48 @@ def score_orb_breakout(
     above_vwap = current_price > vwap
     direction = "calls" if broke_high else "puts"
 
-    # Direction alignment check (40 pts)
+    # Direction alignment check — ORB + intraday VWAP (35 pts)
     if broke_high and above_vwap:
-        score += 40
-        rationale.append("ORB high broken AND above VWAP — signals agree (40pts)")
+        score += 35
+        rationale.append("ORB high broken AND above intraday VWAP — signals agree (35pts)")
     elif broke_low and not above_vwap:
-        score += 40
-        rationale.append("ORB low broken AND below VWAP — signals agree (40pts)")
+        score += 35
+        rationale.append("ORB low broken AND below intraday VWAP — signals agree (35pts)")
     elif broke_high and not above_vwap:
         score -= 30
-        rationale.append("CONFLICT: ORB high broken but BELOW VWAP — skip this (-30pts)")
+        rationale.append("CONFLICT: ORB high broken but BELOW intraday VWAP — skip this (-30pts)")
     elif broke_low and above_vwap:
         score -= 30
-        rationale.append("CONFLICT: ORB low broken but ABOVE VWAP — skip this (-30pts)")
+        rationale.append("CONFLICT: ORB low broken but ABOVE intraday VWAP — skip this (-30pts)")
     else:
         score += 0
         rationale.append("No ORB break yet (0pts)")
+
+    # Anchored VWAP (prev-day) confluence (±10 pts bonus/penalty)
+    if anchored_vwap and anchored_vwap > 0:
+        above_avwap = current_price > anchored_vwap
+        if broke_high and above_avwap:
+            score += 10
+            rationale.append(
+                f"Above prev-day AVWAP (${anchored_vwap:.2f}) — institutional bulls in control (+10pts)"
+            )
+        elif broke_low and not above_avwap:
+            score += 10
+            rationale.append(
+                f"Below prev-day AVWAP (${anchored_vwap:.2f}) — institutional sellers in control (+10pts)"
+            )
+        elif broke_high and not above_avwap:
+            score -= 10
+            rationale.append(
+                f"AVWAP CONFLICT: ORB high broken but BELOW prev-day AVWAP (${anchored_vwap:.2f}) — weak breakout (-10pts)"
+            )
+        elif broke_low and above_avwap:
+            score -= 10
+            rationale.append(
+                f"AVWAP CONFLICT: ORB low broken but ABOVE prev-day AVWAP (${anchored_vwap:.2f}) — weak breakdown (-10pts)"
+            )
+    else:
+        rationale.append("Anchored VWAP not provided — skipping AVWAP check")
 
     # Gap alignment (15 pts)
     if broke_high and gap_pct >= 0:
@@ -661,6 +713,7 @@ class MomentumModel:
         avg_bar_volume: float,
         gap_pct: float,
         vp: Optional[VolumeProfile] = None,
+        anchored_vwap: Optional[float] = None,
     ) -> tuple[int, str, list[str]]:
         return score_orb_breakout(
             symbol=symbol,
@@ -672,7 +725,13 @@ class MomentumModel:
             avg_bar_volume=avg_bar_volume,
             gap_pct=gap_pct,
             vp=vp,
+            anchored_vwap=anchored_vwap,
         )
+
+    def calc_anchored_vwap(
+        self, prev_day_bars: list[dict], today_bars: list[dict]
+    ) -> float:
+        return calc_anchored_vwap(prev_day_bars, today_bars)
 
     def size_position(self, option_ask: float) -> Optional[PositionSize]:
         return size_position(self.buying_power, option_ask)
