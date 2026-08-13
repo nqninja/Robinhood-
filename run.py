@@ -17,8 +17,24 @@ ACCOUNT = "628914509"
 
 # ---------------------------------------------------------------------------
 # Watchlist — cheap underlyings where options are $0.15–$0.80
+# Refreshed 2026-08-13 via Barchart scanner (Options Unusual Activity +
+# Momentum scan). Criteria: price $5–$30, avg vol >10M, IV rank <50%,
+# option OI >5k, 1-day change >+2%.
 # ---------------------------------------------------------------------------
-WATCHLIST = ["SOFI", "MARA", "IONQ", "RIVN", "HOOD", "SOUN"]
+WATCHLIST = [
+    "SOFI",  # IV ~44%, OI 37k — anchor position, best liquidity
+    "MARA",  # IV ~80% — only scan when Bitcoin is green on the day
+    "RIVN",  # $16, high vol — confirm option bid/ask before entry
+    "SOUN",  # $0.21 calls, OI 12k — wait for reversal signal
+    "ACHR",  # eVTOL momentum, $0.38 call, IV 74.8%
+    "JOBY",  # eVTOL companion, $0.36 call, IV 67.4%
+]
+
+# Watchlist refresh: run Barchart scanner every Monday + Wednesday 9:45am
+#   Options → Unusual Activity → Stocks
+#   Filters: Price $5–$30 | Avg Vol >10M | Rel Vol >1.5x | IV Rank <50%
+#            Option OI >5,000 | 1-day change >+2%
+# Cross-reference with Stocks → Momentum tab for sector confirmation.
 
 # ---------------------------------------------------------------------------
 # Agent instructions
@@ -48,10 +64,17 @@ STEP M2 — ACCOUNT STATE
   get_option_positions(account_number="628914509")
   → if any open option positions exist → run EOD exit check first (see SESSION 3)
 
-STEP M3 — EARNINGS BLACKOUT
+STEP M3 — EARNINGS BLACKOUT + SYMBOL-SPECIFIC CHECKS
   get_earnings_calendar()
   For each symbol in WATCHLIST: flag if earnings within 7 days.
   These symbols are SKIPPED for the entire week.
+
+  MARA special rule: check Bitcoin direction via get_equity_quotes(["MARA"]) trend
+  or get_index_quotes for crypto sentiment. If Bitcoin is down on the day → skip MARA.
+  MARA IV sits at 79-80% (hard limit) — trading it against crypto direction = certain loss.
+
+  ACHR/JOBY: check if either had news in past 48h (eVTOL sector moves together).
+  If one is making a big move, the other likely follows — scan both.
 
 STEP M4 — MOMENTUM SWING SCAN  (Setup A)
   For each symbol in WATCHLIST not flagged for earnings:

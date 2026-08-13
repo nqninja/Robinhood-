@@ -27,44 +27,46 @@
     }
   },
   "new_system": {
-    "name": "Cheap Momentum Swing",
-    "rationale": "At <$200 buying power, SPY options are too expensive. Need cheap contracts ($0.20-0.60) on lower-priced stocks with IV <80%, held 3-7 days, with a real catalyst. Max 1-2 trades per week.",
+    "name": "Cheap Momentum Options — 10%/month target",
+    "goal": "Compound $188 → $500 → $1k → $5k via 1-2 high-conviction trades per week",
+    "rationale": "Options $0.15-$0.80/contract on $5-$30 stocks. IV <80%. Score 70+ required. All signals must confirm before entry. Template trade: SOFI 7/31 (+139% in 3 days).",
     "hard_rules": {
       "no_trade_days": ["CPI", "FOMC", "NFP", "PPI", "earnings day for the underlying", "day before earnings"],
-      "max_position_size": "25% of total account value per trade (at $188 = $47 max cost)",
+      "max_position_size": "25% of buying power per trade",
       "max_iv": "80% — no exceptions",
-      "min_dte": "5 days minimum — no 0DTE or 1DTE until account > $500",
+      "min_dte": "5 days minimum",
       "stop_loss": "35% of premium paid",
-      "profit_target": "80% minimum — do not hold through fading momentum",
+      "profit_target": "80% — exit here, do not hold through fading momentum",
+      "hard_exit": "100% gain — take it no matter what",
       "max_trades_per_week": 2,
-      "account_floor": "If buying power < $50 — NO new trades, period. Protect the last bit."
+      "account_floor": "$50 buying power — no new trades below this",
+      "confluence_required": "ORB + intraday VWAP + prev-day AVWAP + gap must all agree"
     },
     "universe": {
-      "primary": ["SOFI", "MARA", "IONQ", "RIVN", "SOUN"],
-      "rationale": "Options trade $0.10-0.80/contract. At $47 max spend, can buy 1-4 contracts. Enough size to matter without blowing the account.",
-      "avoid": ["SPY", "QQQ", "NVDA", "AMD", "META", "PLTR", "TSLA"],
-      "avoid_reason": "Options too expensive ($1.50-5.00+/contract) for this account size"
+      "primary": ["SOFI", "MARA", "RIVN", "SOUN", "ACHR", "JOBY"],
+      "notes": {
+        "SOFI": "IV 44%, OI 37k — anchor, most liquid, best default play",
+        "MARA": "IV 80% — only trade when Bitcoin is green on the day",
+        "RIVN": "Good price/volume — verify option pricing before entry",
+        "SOUN": "Cheapest calls ($0.21) — wait for reversal signal, don't chase",
+        "ACHR": "eVTOL momentum, $0.38 call, IV 74.8% — new add 8/13",
+        "JOBY": "eVTOL companion, $0.36 call, IV 67.4%, OI 4.5k — new add 8/13"
+      },
+      "removed": {
+        "HOOD": "Stock at $98 — ATM calls $5+, incompatible with this account",
+        "IONQ": "Stock at $45 — ATM calls $2.50+; re-add if price drops below $20"
+      },
+      "avoid": ["SPY", "QQQ", "NVDA", "AMD", "META", "PLTR", "TSLA", "AMZN", "AAPL", "MSFT"],
+      "scanner": "Barchart Options→Unusual Activity: Price $5-30, AvgVol >10M, RelVol >1.5x, IVR <50%, OI >5k, 1d chg >+2%"
     },
-    "entry_checklist": [
-      "NOT a macro event day (check economic calendar first)",
-      "NOT within 5 days of earnings for the underlying",
-      "IV < 80% confirmed via option quote",
-      "Stock showing clear momentum: up >3% on day OR breaking multi-week resistance",
-      "Entry AFTER 10am — never at market open",
-      "Price above VWAP for calls, below VWAP for puts",
-      "Volume > 1.5x average for the stock",
-      "Option cost ≤ 25% of current buying power (currently ≤ $18/contract)",
-      "Clear catalyst (sector momentum, news, technical breakout) — not just 'looks good'"
-    ],
-    "sizing": {
-      "current_buying_power": 75.37,
-      "max_per_trade": 18.84,
-      "note": "At $75 buying power, max $18/trade. This means $0.18 options × 1 contract, or $0.09 × 2 contracts. VERY limited. Consider depositing to rebuild before trading again."
-    },
-    "suggested_path": {
-      "option_1": "Deposit $100-200 to get buying power to $175-275, then trade 1x per week max with $40-50 per trade.",
-      "option_2": "Wait for $75 unsettled to settle (8/13), then have ~$188 total. Max per trade = $47. Only trade A+ setups.",
-      "option_3": "Paper trade for 2 weeks to test new system before risking real money."
+    "growth_projection": {
+      "month_1": 207,
+      "month_3": 250,
+      "month_6": 333,
+      "month_12": 590,
+      "month_24": 1851,
+      "month_36": 5813,
+      "note": "At 10%/month compounded. Only need 1-2 winning trades/month."
     }
   },
   "positions": [],
