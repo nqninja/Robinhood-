@@ -121,9 +121,9 @@ class PreTradeFilter:
                 f"LOW AVG VOLUME: {self.avg_daily_volume/1e6:.1f}M shares/day < 1M minimum"
             )
 
-        if self.dollar_volume > 0 and self.dollar_volume < 50_000_000:
+        if self.dollar_volume > 0 and self.dollar_volume < 20_000_000:
             failures.append(
-                f"LOW DOLLAR VOLUME: ${self.dollar_volume/1e6:.1f}M < $50M minimum"
+                f"LOW DOLLAR VOLUME: ${self.dollar_volume/1e6:.1f}M < $20M minimum"
             )
 
         if self.rel_volume > 0 and self.rel_volume < 1.5:
@@ -166,9 +166,9 @@ class PreTradeFilter:
         if self.open_interest > 0 and self.open_interest < 1000:
             failures.append(f"LOW OI: {self.open_interest:,} < 1,000 — illiquid contract")
 
-        if self.options_volume > 0 and self.options_volume < 1000:
+        if self.options_volume > 0 and self.options_volume < 500:
             failures.append(
-                f"LOW OPTIONS VOLUME: {self.options_volume:,} contracts < 1,000 today"
+                f"LOW OPTIONS VOLUME: {self.options_volume:,} contracts < 500 today"
             )
 
         # Vol/OI ratio — unusual activity threshold
@@ -179,13 +179,13 @@ class PreTradeFilter:
                     f"LOW VOL/OI: {vol_oi:.1f}x < 1.5x — not genuinely unusual activity"
                 )
 
-        # Bid/ask spread ≤ 5% of mid
+        # Bid/ask spread ≤ 15% of mid (5% is too tight for cheap $0.20-0.50 options)
         if self.bid > 0 and self.ask > 0:
             mid = (self.bid + self.ask) / 2
             spread_pct = (self.ask - self.bid) / mid if mid > 0 else 1.0
-            if spread_pct > 0.05:
+            if spread_pct > 0.15:
                 failures.append(
-                    f"SPREAD TOO WIDE: {spread_pct:.0%} (${self.bid:.2f}/${self.ask:.2f}) > 5% max"
+                    f"SPREAD TOO WIDE: {spread_pct:.0%} (${self.bid:.2f}/${self.ask:.2f}) > 15% max"
                 )
 
         # Delta: 0.45–0.70 (no lottery OTM, no deep ITM)
@@ -418,17 +418,17 @@ def score_unusual_activity(
     if bid > 0 and ask > 0:
         mid = (bid + ask) / 2
         spread_pct = (ask - bid) / mid
-        if spread_pct <= 0.03:
+        if spread_pct <= 0.05:
             liq_score += 8
             rationale.append(f"Tight spread: {spread_pct:.0%} (8pts)")
-        elif spread_pct <= 0.05:
+        elif spread_pct <= 0.10:
             liq_score += 5
             rationale.append(f"Good spread: {spread_pct:.0%} (5pts)")
-        elif spread_pct <= 0.10:
+        elif spread_pct <= 0.15:
             liq_score += 2
-            rationale.append(f"Wide spread: {spread_pct:.0%} (2pts)")
+            rationale.append(f"Acceptable spread: {spread_pct:.0%} (2pts)")
         else:
-            rationale.append(f"Too wide: {spread_pct:.0%} spread (0pts)")
+            rationale.append(f"Too wide: {spread_pct:.0%} spread — avoid (0pts)")
 
     score += min(liq_score, 15)
 
