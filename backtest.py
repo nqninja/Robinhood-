@@ -163,8 +163,8 @@ def apply_filters(sym, bars, i, rejection_counts):
         rejection_counts["iv_proxy"] += 1
         return False, "iv_proxy"
 
-    # ── FILTER 11: RVOL ≥ 2.0x (Vol/OI proxy) ───────────────────────────────
-    if rvol < 2.0:
+    # ── FILTER 11: RVOL ≥ 1.5x (scanner already pre-filters for unusual activity)
+    if rvol < 1.5:
         rejection_counts["rvol_strong"] += 1
         return False, "rvol_strong"
 
@@ -278,6 +278,15 @@ def simulate_trade(signal, bars):
             outcome_pct = OPTION_LOSS_PCT
             exit_reason = "stop_loss"
             break
+        # Day 2 flat-exit: if by EOD Day 2 position hasn't moved enough, exit
+        # Avoids holding a stalled trade into Day 3 theta bleed
+        elif d == 2:
+            option_pct_proxy = stock_move * OPTION_LEVERAGE
+            option_pct_proxy = max(-0.95, min(2.0, option_pct_proxy))
+            if -0.15 < option_pct_proxy < 0.40:
+                outcome_pct = option_pct_proxy
+                exit_reason = "day2_flat_exit"
+                break
 
     if outcome_pct is None:
         if hold_days == 0:
@@ -348,7 +357,7 @@ def main():
         ("avg_vol",           "Avg daily vol < 1M shares"),
         ("option_price",      "Option price proxy too low"),
         ("iv_proxy",          "IV proxy (hist vol) ≥ 0.80"),
-        ("rvol_strong",       "RVOL < 2.0x (Vol/OI proxy)"),
+        ("rvol_strong",       "RVOL < 1.5x (Vol/OI proxy)"),
         ("earnings_blackout", "Earnings blackout (day ≥ 27)"),
         ("gap_filter",        "Gap opposes trade direction"),
         ("trend_sma",         "Price vs SMA10 trend fails"),

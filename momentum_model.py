@@ -891,12 +891,13 @@ def check_exit(
     underlying_price: float,
     vwap: float,
     direction: str,           # "calls" or "puts"
+    days_held: int = 0,       # trading days since entry
     stop_pct: float = 0.35,
     target_pct: float = 0.80,
 ) -> ExitSignal:
     """
     Check all exit conditions for an open position.
-    Priority: stop > target > time > thesis.
+    Priority: stop > target > time > day-2 flat > thesis.
     """
     gain_pct = (current_price - entry_price) / entry_price
 
@@ -920,6 +921,21 @@ def check_exit(
             action="take_profit",
             reason=f"Premium up {gain_pct:.1%} — 80% target hit, exit",
             urgency="immediate",
+        )
+
+    # Day 2 flat-exit rule — don't let theta bleed a stalled trade
+    # If by end of Day 2 the position hasn't moved meaningfully, exit.
+    # "Meaningfully" = outside the -15% to +40% band.
+    # Rationale: a real momentum trade shows progress within 2 days.
+    # If it hasn't, the catalyst is fading and theta is winning.
+    if days_held >= 2 and -0.15 < gain_pct < 0.40:
+        return ExitSignal(
+            action="time_stop",
+            reason=(
+                f"Day 2 flat-exit: position at {gain_pct:+.1%} after {days_held}d "
+                f"— momentum stalled, exiting before theta bleed"
+            ),
+            urgency="next_bar",
         )
 
     # Time stop — exit with 3 DTE to avoid gamma risk and theta bleed
@@ -1143,6 +1159,7 @@ class MomentumModel:
         underlying_price: float,
         vwap: float,
         direction: str,
+        days_held: int = 0,
     ) -> ExitSignal:
         return check_exit(
             entry_price=entry_price,
@@ -1151,6 +1168,7 @@ class MomentumModel:
             underlying_price=underlying_price,
             vwap=vwap,
             direction=direction,
+            days_held=days_held,
         )
 
     def calc_vwap(self, bars: list[dict]) -> float:
@@ -1166,7 +1184,7 @@ class MomentumModel:
         print(f"Buying power: ${self.buying_power:.2f}")
         print(f"Max per trade: ${self.buying_power * 0.25:.2f} (25%)")
         print(f"Day status: {'✅ TRADEABLE' if ok else '🚫 NO TRADE'} — {reason}")
-        print(f"Universe: {', '.join(CHEAP_UNIVERSE)}")
+        print(f"Avoid: {', '.join(AVOID)}")
         print(f"{'='*60}\n")
 
 
