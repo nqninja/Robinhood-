@@ -1,22 +1,19 @@
 """
 Cheap Momentum Options Model — designed for $75–$500 accounts
 
-Built around three hard lessons:
-  1. SPY/QQQ options cost too much at this account size. Trade cheap underlyings.
-  2. Never fight macro event days. Check the calendar before anything else.
-  3. The only winning trade was a patient 3-day swing on cheap options with low IV.
-     Copy that. Don't chase intraday noise.
+Rule: BARCHART FINDS IT → PRICE ACTION CONFIRMS IT →
+      OPTIONS CHAIN PICKS THE CONTRACT → RISK MANAGEMENT APPROVES
 
-Two setups, scored 0–100. Only enter at 70+.
-Setup A: Momentum Continuation (multi-day swing)
-Setup B: ORB Breakout (intraday, non-macro days only, 5+ DTE)
+Grade thresholds (score_unusual_activity):
+  80–100 = A+  → eligible to trade
+  70–79  = A   → watch / optional trade
+  60–69  = B   → watch only
+  < 60   = NO TRADE
 
-Usage (in a session):
-    from momentum_model import MomentumModel
-    model = MomentumModel(buying_power=150.00, date="2026-08-13")
-    model.check_macro_calendar()  # prints go/no-go
-    signal = model.score_setup(...)
-    sizing = model.size_position(signal)
+Required combination for any entry:
+  Unusual options activity + abnormal stock volume +
+  directional price movement + liquid contract
+  ALL FOUR must be present. One missing = no trade.
 """
 
 from __future__ import annotations
@@ -65,84 +62,138 @@ MACRO_CALENDAR: dict[str, str] = {
 
 @dataclass
 class PreTradeFilter:
-    date: str           # "YYYY-MM-DD"
+    # Required
+    date: str               # "YYYY-MM-DD"
     symbol: str
     buying_power: float
-    iv: float           # 0.0–1.0 (e.g. 0.55 = 55%)
-    earnings_dte: int   # days until next earnings (-1 = unknown)
-    option_cost: float  # per contract (ask price × 100)
-    dte: int            # days to expiration on the option
-    bid: float = 0.0    # option bid price
-    ask: float = 0.0    # option ask price
+    iv: float               # 0.0–1.0
+    earnings_dte: int       # days to next earnings (-1 = unknown)
+    option_cost: float      # per contract (ask × 100)
+    dte: int                # days to expiration
+
+    # Option chain fields
+    bid: float = 0.0
+    ask: float = 0.0
     open_interest: int = 0
-    delta: float = 0.0  # absolute value (0.0 = not provided)
-    btc_negative_day: bool = False  # for MARA only
+    options_volume: int = 0   # contracts traded today
+    delta: float = 0.0        # absolute value
+
+    # Stock fields
+    stock_price: float = 0.0
+    avg_daily_volume: float = 0.0    # shares, 20-day avg
+    today_volume: float = 0.0        # shares traded today so far
+    dollar_volume: float = 0.0       # stock_price × avg_daily_volume
+    atr_pct: float = 0.0             # ATR as % of stock price (e.g. 0.025 = 2.5%)
+    rel_volume: float = 0.0          # today_vol / avg_daily_vol
+    price_direction: str = ""        # "up", "down", or "" (unknown)
+    options_direction: str = ""      # "calls" or "puts" (dominant unusual activity)
+
+    # Symbol-specific
+    btc_negative_day: bool = False   # MARA only
 
     def run(self) -> tuple[bool, list[str]]:
-        """Returns (passes, list_of_failures)."""
+        """Returns (passes, list_of_failures). Any failure = no trade."""
         failures = []
 
-        # Hard rule 1: macro event day
+        # ── ACCOUNT / CALENDAR ───────────────────────────────────────────────
         if self.date in MACRO_CALENDAR:
-            failures.append(f"MACRO EVENT DAY: {MACRO_CALENDAR[self.date]} — no trades")
+            failures.append(f"MACRO EVENT: {MACRO_CALENDAR[self.date]} — no trades today")
 
-        # Hard rule 2: earnings blackout (7 days)
+        if self.buying_power < 50:
+            failures.append(f"ACCOUNT FLOOR: ${self.buying_power:.2f} < $50 minimum")
+
+        if self.symbol in AVOID:
+            failures.append(f"WRONG UNIVERSE: {self.symbol} — options too expensive for account")
+
+        if self.symbol == "MARA" and self.btc_negative_day:
+            failures.append("MARA: Bitcoin down today — IV too high to fight direction")
+
+        # ── EARNINGS ─────────────────────────────────────────────────────────
         if 0 <= self.earnings_dte <= 7:
-            failures.append(f"EARNINGS BLACKOUT: {self.earnings_dte} days to earnings")
+            failures.append(f"EARNINGS BLACKOUT: {self.earnings_dte}d to earnings")
 
-        # Hard rule 3: IV cap
+        # ── STOCK FILTERS ────────────────────────────────────────────────────
+        if self.stock_price > 0 and self.stock_price < 5:
+            failures.append(f"STOCK PRICE: ${self.stock_price:.2f} < $5 — avoid penny stocks")
+
+        if self.avg_daily_volume > 0 and self.avg_daily_volume < 1_000_000:
+            failures.append(
+                f"LOW AVG VOLUME: {self.avg_daily_volume/1e6:.1f}M shares/day < 1M minimum"
+            )
+
+        if self.dollar_volume > 0 and self.dollar_volume < 50_000_000:
+            failures.append(
+                f"LOW DOLLAR VOLUME: ${self.dollar_volume/1e6:.1f}M < $50M minimum"
+            )
+
+        if self.rel_volume > 0 and self.rel_volume < 1.5:
+            failures.append(
+                f"LOW RVOL: {self.rel_volume:.1f}x < 1.5x — stock not moving with conviction"
+            )
+
+        if self.atr_pct > 0 and self.atr_pct < 0.02:
+            failures.append(
+                f"LOW ATR: {self.atr_pct:.1%} < 2% — not enough daily range for options profit"
+            )
+
+        # Stock must be moving in the same direction as the dominant options activity
+        if self.price_direction and self.options_direction:
+            direction_match = (
+                (self.options_direction == "calls" and self.price_direction == "up") or
+                (self.options_direction == "puts" and self.price_direction == "down")
+            )
+            if not direction_match:
+                failures.append(
+                    f"DIRECTION MISMATCH: {self.options_direction} activity but stock is "
+                    f"going {self.price_direction} — options and price must agree"
+                )
+
+        # ── OPTION CONTRACT FILTERS ───────────────────────────────────────────
         if self.iv > 0.80:
-            failures.append(f"IV TOO HIGH: {self.iv:.0%} > 80% max")
+            failures.append(f"IV TOO HIGH: {self.iv:.0%} > 80% cap")
 
-        # Hard rule 4: position size cap (25% of buying power)
         max_cost = self.buying_power * 0.25
         if self.option_cost > max_cost:
             failures.append(
-                f"TOO EXPENSIVE: ${self.option_cost:.2f} > 25% of buying power "
-                f"(${max_cost:.2f})"
+                f"TOO EXPENSIVE: ${self.option_cost:.2f} > 25% of buying power (${max_cost:.2f})"
             )
 
-        # Hard rule 5: min DTE
-        if self.dte < 5:
-            failures.append(f"DTE TOO SHORT: {self.dte} DTE < 5 minimum")
+        if self.dte < 7:
+            failures.append(f"DTE TOO SHORT: {self.dte}d < 7 minimum")
+        elif self.dte > 45:
+            failures.append(f"DTE TOO LONG: {self.dte}d > 45 — too much time decay risk")
 
-        # Hard rule 6: account floor
-        if self.buying_power < 50:
-            failures.append(f"ACCOUNT TOO LOW: ${self.buying_power:.2f} < $50 floor — no trades")
+        if self.open_interest > 0 and self.open_interest < 1000:
+            failures.append(f"LOW OI: {self.open_interest:,} < 1,000 — illiquid contract")
 
-        # Hard rule 7: wrong universe
-        if self.symbol in AVOID:
-            failures.append(f"WRONG VEHICLE: {self.symbol} options too expensive for this account")
+        if self.options_volume > 0 and self.options_volume < 1000:
+            failures.append(
+                f"LOW OPTIONS VOLUME: {self.options_volume:,} contracts < 1,000 today"
+            )
 
-        # Hard rule 8: MARA only on Bitcoin up days (IV at 80% limit — can't fight direction)
-        if self.symbol == "MARA" and self.btc_negative_day:
-            failures.append("MARA: Bitcoin down today — skip, IV too high to fight direction")
+        # Vol/OI ratio — unusual activity threshold
+        if self.options_volume > 0 and self.open_interest > 0:
+            vol_oi = self.options_volume / self.open_interest
+            if vol_oi < 1.5:
+                failures.append(
+                    f"LOW VOL/OI: {vol_oi:.1f}x < 1.5x — not genuinely unusual activity"
+                )
 
-        # Hard rule 9: bid/ask spread ≤ 15% of mid (wide spread = illiquid trap)
+        # Bid/ask spread ≤ 5% of mid
         if self.bid > 0 and self.ask > 0:
             mid = (self.bid + self.ask) / 2
             spread_pct = (self.ask - self.bid) / mid if mid > 0 else 1.0
-            if spread_pct > 0.15:
+            if spread_pct > 0.05:
                 failures.append(
-                    f"SPREAD TOO WIDE: {spread_pct:.0%} (bid ${self.bid:.2f} / ask ${self.ask:.2f}) > 15% max"
+                    f"SPREAD TOO WIDE: {spread_pct:.0%} (${self.bid:.2f}/${self.ask:.2f}) > 5% max"
                 )
 
-        # Hard rule 10: open interest ≥ 5,000 (real liquidity, not a trap)
-        if self.open_interest > 0 and self.open_interest < 5000:
-            failures.append(
-                f"LOW OPEN INTEREST: {self.open_interest:,} < 5,000 minimum — illiquid contract"
-            )
-
-        # Hard rule 11: delta in target range 0.40–0.65 (not lottery OTM, not deep ITM)
+        # Delta: 0.45–0.70 (no lottery OTM, no deep ITM)
         if self.delta > 0:
-            if self.delta < 0.30:
-                failures.append(
-                    f"DELTA TOO LOW: {self.delta:.2f} < 0.30 — far OTM lottery contract"
-                )
+            if self.delta < 0.35:
+                failures.append(f"DELTA TOO LOW: {self.delta:.2f} < 0.35 — far OTM lottery")
             elif self.delta > 0.75:
-                failures.append(
-                    f"DELTA TOO HIGH: {self.delta:.2f} > 0.75 — deep ITM, pay intrinsic not momentum"
-                )
+                failures.append(f"DELTA TOO HIGH: {self.delta:.2f} > 0.75 — deep ITM")
 
         return len(failures) == 0, failures
 
@@ -243,6 +294,209 @@ class VolumeProfile:
     def price_in_lvn(self, price: float) -> bool:
         """True if price is inside a low-volume node (expect fast move)."""
         return any(lo <= price <= hi for lo, hi in self.lvn_zones)
+
+
+# ---------------------------------------------------------------------------
+# Unusual activity scanner score  (Step 1 of the trade pipeline)
+# ---------------------------------------------------------------------------
+
+def score_unusual_activity(
+    symbol: str,
+    # Options activity
+    options_volume: int,        # contracts traded today
+    open_interest: int,         # OI on target strike
+    call_volume: int,           # call contracts today
+    put_volume: int,            # put contracts today
+    bid: float,
+    ask: float,
+    # Stock activity
+    rel_volume: float,          # today vol / 20d avg vol
+    price_change_pct: float,    # today's % move (positive = up)
+    avg_daily_volume: float,    # 20d avg share volume
+    dollar_volume: float,       # price × avg_daily_volume
+    atr_pct: float,             # ATR / stock price
+    # Context
+    near_key_level: bool = False,    # near breakout/breakdown level
+    volume_increasing: bool = False, # volume climbing as price moves
+    spy_agrees: bool = True,         # market direction agrees with trade
+    sector_agrees: bool = True,      # sector direction agrees
+) -> tuple[int, str, list[str]]:
+    """
+    Score a candidate stock 0–100 for unusual options activity quality.
+    Returns (score, direction, rationale).
+
+    direction: "calls" or "puts" based on which dominates.
+
+    Grade thresholds:
+      80–100 = A+  → eligible to trade
+      70–79  = A   → watch / optional trade
+      60–69  = B   → watch only
+      < 60   = NO TRADE
+
+    Weights:
+      Barchart options activity    25pts  (vol/OI ratio + volume)
+      Relative volume              15pts
+      Price momentum               15pts
+      Options liquidity            15pts  (OI, spread, volume)
+      Call/put directional confirm 10pts
+      Breakout/breakdown setup     10pts
+      Volatility/movement           5pts
+      Market/sector confirmation    5pts
+    """
+    score = 0
+    rationale = []
+
+    # Determine dominant direction
+    direction = "calls" if call_volume >= put_volume else "puts"
+    bullish = direction == "calls"
+    price_moving_right = (bullish and price_change_pct > 0) or (not bullish and price_change_pct < 0)
+
+    # ── 1. BARCHART OPTIONS ACTIVITY  (25 pts) ────────────────────────────────
+    vol_oi = options_volume / open_interest if open_interest > 0 else 0
+    if vol_oi >= 5.0:
+        score += 25
+        rationale.append(f"Massive unusual activity: Vol/OI {vol_oi:.1f}x (25pts)")
+    elif vol_oi >= 3.0:
+        score += 20
+        rationale.append(f"Strong unusual activity: Vol/OI {vol_oi:.1f}x (20pts)")
+    elif vol_oi >= 1.5:
+        score += 12
+        rationale.append(f"Moderate unusual activity: Vol/OI {vol_oi:.1f}x (12pts)")
+    else:
+        score += 0
+        rationale.append(f"Weak signal: Vol/OI {vol_oi:.1f}x < 1.5x threshold (0pts)")
+
+    # ── 2. RELATIVE VOLUME  (15 pts) ─────────────────────────────────────────
+    if rel_volume >= 3.0:
+        score += 15
+        rationale.append(f"Exceptional RVOL: {rel_volume:.1f}x (15pts)")
+    elif rel_volume >= 2.0:
+        score += 11
+        rationale.append(f"Strong RVOL: {rel_volume:.1f}x (11pts)")
+    elif rel_volume >= 1.5:
+        score += 7
+        rationale.append(f"Good RVOL: {rel_volume:.1f}x (7pts)")
+    else:
+        score += 0
+        rationale.append(f"Low RVOL: {rel_volume:.1f}x < 1.5x minimum (0pts)")
+
+    # ── 3. PRICE MOMENTUM  (15 pts) ──────────────────────────────────────────
+    abs_chg = abs(price_change_pct)
+    if price_moving_right:
+        if abs_chg >= 0.05:
+            score += 15
+            rationale.append(f"Strong momentum: {price_change_pct:+.1%} in right direction (15pts)")
+        elif abs_chg >= 0.03:
+            score += 10
+            rationale.append(f"Good momentum: {price_change_pct:+.1%} (10pts)")
+        elif abs_chg >= 0.01:
+            score += 5
+            rationale.append(f"Mild momentum: {price_change_pct:+.1%} (5pts)")
+        else:
+            score += 2
+            rationale.append(f"Flat — stock barely moving ({price_change_pct:+.1%}) (2pts)")
+    else:
+        score += 0
+        rationale.append(
+            f"DIRECTION MISMATCH: stock {price_change_pct:+.1%} but {direction} dominating (0pts)"
+        )
+
+    # ── 4. OPTIONS LIQUIDITY  (15 pts) ────────────────────────────────────────
+    liq_score = 0
+    if open_interest >= 10_000:
+        liq_score += 7
+        rationale.append(f"High OI: {open_interest:,} (7pts)")
+    elif open_interest >= 5_000:
+        liq_score += 5
+        rationale.append(f"Good OI: {open_interest:,} (5pts)")
+    elif open_interest >= 1_000:
+        liq_score += 2
+        rationale.append(f"Acceptable OI: {open_interest:,} (2pts)")
+    else:
+        rationale.append(f"Low OI: {open_interest:,} — illiquid (0pts)")
+
+    if bid > 0 and ask > 0:
+        mid = (bid + ask) / 2
+        spread_pct = (ask - bid) / mid
+        if spread_pct <= 0.03:
+            liq_score += 8
+            rationale.append(f"Tight spread: {spread_pct:.0%} (8pts)")
+        elif spread_pct <= 0.05:
+            liq_score += 5
+            rationale.append(f"Good spread: {spread_pct:.0%} (5pts)")
+        elif spread_pct <= 0.10:
+            liq_score += 2
+            rationale.append(f"Wide spread: {spread_pct:.0%} (2pts)")
+        else:
+            rationale.append(f"Too wide: {spread_pct:.0%} spread (0pts)")
+
+    score += min(liq_score, 15)
+
+    # ── 5. CALL/PUT DIRECTIONAL CONFIRMATION  (10 pts) ────────────────────────
+    total_vol = call_volume + put_volume
+    if total_vol > 0:
+        dominant_pct = max(call_volume, put_volume) / total_vol
+        if dominant_pct >= 0.75:
+            score += 10
+            rationale.append(
+                f"Strong directional conviction: {direction} {dominant_pct:.0%} of volume (10pts)"
+            )
+        elif dominant_pct >= 0.60:
+            score += 6
+            rationale.append(
+                f"Moderate conviction: {direction} {dominant_pct:.0%} of volume (6pts)"
+            )
+        else:
+            score += 2
+            rationale.append(f"Weak conviction: calls/puts near even split (2pts)")
+
+    # ── 6. BREAKOUT/BREAKDOWN SETUP  (10 pts) ────────────────────────────────
+    if near_key_level and volume_increasing:
+        score += 10
+        rationale.append("Near key level + volume increasing — textbook breakout setup (10pts)")
+    elif near_key_level:
+        score += 6
+        rationale.append("Near key level (6pts)")
+    elif volume_increasing:
+        score += 4
+        rationale.append("Volume increasing as price moves (4pts)")
+    else:
+        rationale.append("No clear breakout setup (0pts)")
+
+    # ── 7. VOLATILITY / MOVEMENT  (5 pts) ────────────────────────────────────
+    if atr_pct >= 0.04:
+        score += 5
+        rationale.append(f"High ATR: {atr_pct:.1%} — big daily ranges (5pts)")
+    elif atr_pct >= 0.02:
+        score += 3
+        rationale.append(f"Good ATR: {atr_pct:.1%} (3pts)")
+    else:
+        rationale.append(f"Low ATR: {atr_pct:.1%} < 2% — not enough movement (0pts)")
+
+    # ── 8. MARKET/SECTOR CONFIRMATION  (5 pts) ───────────────────────────────
+    if spy_agrees and sector_agrees:
+        score += 5
+        rationale.append("SPY + sector both confirm direction (5pts)")
+    elif spy_agrees or sector_agrees:
+        score += 3
+        rationale.append("One of SPY/sector confirms direction (3pts)")
+    else:
+        rationale.append("Neither SPY nor sector confirms — fighting the tape (0pts)")
+
+    # ── GRADE ─────────────────────────────────────────────────────────────────
+    final = max(0, min(100, score))
+    if final >= 80:
+        grade = "A+ — ELIGIBLE TO TRADE"
+    elif final >= 70:
+        grade = "A — watch / optional trade"
+    elif final >= 60:
+        grade = "B — watch only"
+    else:
+        grade = "NO TRADE"
+    rationale.append(f"{'='*40}")
+    rationale.append(f"SCORE: {final}/100 | GRADE: {grade}")
+
+    return final, direction, rationale
 
 
 # ---------------------------------------------------------------------------
@@ -740,7 +994,16 @@ class MomentumModel:
         dte: int,
         bid: float = 0.0,
         open_interest: int = 0,
+        options_volume: int = 0,
         delta: float = 0.0,
+        stock_price: float = 0.0,
+        avg_daily_volume: float = 0.0,
+        today_volume: float = 0.0,
+        dollar_volume: float = 0.0,
+        atr_pct: float = 0.0,
+        rel_volume: float = 0.0,
+        price_direction: str = "",
+        options_direction: str = "",
         btc_negative_day: bool = False,
     ) -> tuple[bool, list[str]]:
         f = PreTradeFilter(
@@ -754,10 +1017,57 @@ class MomentumModel:
             bid=bid,
             ask=option_ask,
             open_interest=open_interest,
+            options_volume=options_volume,
             delta=delta,
+            stock_price=stock_price,
+            avg_daily_volume=avg_daily_volume,
+            today_volume=today_volume,
+            dollar_volume=dollar_volume,
+            atr_pct=atr_pct,
+            rel_volume=rel_volume,
+            price_direction=price_direction,
+            options_direction=options_direction,
             btc_negative_day=btc_negative_day,
         )
         return f.run()
+
+    def score_unusual_activity(
+        self,
+        symbol: str,
+        options_volume: int,
+        open_interest: int,
+        call_volume: int,
+        put_volume: int,
+        bid: float,
+        ask: float,
+        rel_volume: float,
+        price_change_pct: float,
+        avg_daily_volume: float,
+        dollar_volume: float,
+        atr_pct: float,
+        near_key_level: bool = False,
+        volume_increasing: bool = False,
+        spy_agrees: bool = True,
+        sector_agrees: bool = True,
+    ) -> tuple[int, str, list[str]]:
+        return score_unusual_activity(
+            symbol=symbol,
+            options_volume=options_volume,
+            open_interest=open_interest,
+            call_volume=call_volume,
+            put_volume=put_volume,
+            bid=bid,
+            ask=ask,
+            rel_volume=rel_volume,
+            price_change_pct=price_change_pct,
+            avg_daily_volume=avg_daily_volume,
+            dollar_volume=dollar_volume,
+            atr_pct=atr_pct,
+            near_key_level=near_key_level,
+            volume_increasing=volume_increasing,
+            spy_agrees=spy_agrees,
+            sector_agrees=sector_agrees,
+        )
 
     def score_momentum_swing(
         self,
@@ -883,6 +1193,38 @@ if __name__ == "__main__":
 
     sizing = model.size_position(option_ask=0.36)
     print(f"\nPosition sizing: {sizing}")
+
+    # Unusual activity scorer — A+ setup
+    print("\n--- Unusual activity score: SOFI strong setup (should be A+) ---")
+    score, direction, rationale = score_unusual_activity(
+        symbol="SOFI",
+        options_volume=95_000, open_interest=37_000,   # Vol/OI = 2.6x — genuinely unusual
+        call_volume=78_000, put_volume=17_000,
+        bid=0.54, ask=0.56,   # tight spread
+        rel_volume=2.8, price_change_pct=0.047,
+        avg_daily_volume=45_000_000, dollar_volume=15 * 45_000_000,
+        atr_pct=0.032,
+        near_key_level=True, volume_increasing=True,
+        spy_agrees=True, sector_agrees=True,
+    )
+    for r in rationale:
+        print(f"  {r}")
+
+    # Unusual activity scorer — weak setup (should be B or NO TRADE)
+    print("\n--- Unusual activity score: weak setup (should be B/NO TRADE) ---")
+    score2, direction2, rationale2 = score_unusual_activity(
+        symbol="SOUN",
+        options_volume=800, open_interest=12_000,
+        call_volume=500, put_volume=300,
+        bid=0.19, ask=0.24,
+        rel_volume=1.1, price_change_pct=-0.008,
+        avg_daily_volume=8_000_000, dollar_volume=6 * 8_000_000,
+        atr_pct=0.038,
+        near_key_level=False, volume_increasing=False,
+        spy_agrees=False, sector_agrees=True,
+    )
+    for r in rationale2:
+        print(f"  {r}")
 
     # ORB confluence test — all signals agree (should pass gate and score high)
     print("\n--- ORB confluence: all agree (should pass) ---")
