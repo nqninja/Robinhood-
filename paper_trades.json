@@ -1,0 +1,13 @@
+{
+  "account": "628914509",
+  "paper_trading_start": "2026-08-14",
+  "goal": "2 weeks of real setups with real option prices — prove win rate before risking live capital",
+  "instructions": {
+    "morning": "9:00 AM — run Barchart scanner. Log top 3 candidates below even if you don't trade.",
+    "entry": "9:45 AM — after ORB sets. Log score, option price, entry rationale.",
+    "exit": "Log exit price, reason, and what the real P&L would have been.",
+    "no_trade_days": "Still log 'no setup found' — tracking when you correctly sat out is just as important."
+  },
+  "paper_trades": [],
+  "scan_log": []
+}

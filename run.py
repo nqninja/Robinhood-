@@ -349,12 +349,115 @@ def morning_briefing(buying_power: float, date_str: str | None = None) -> None:
     model.print_summary()
     macro, event = is_macro_day(d)
     if macro:
-        print(f"🚫 MACRO EVENT: {event} — NO TRADES TODAY\n")
+        print(f"MACRO EVENT: {event} — NO TRADES TODAY\n")
         return
     max_spend = buying_power * 0.25
     print(f"Max per trade : ${max_spend:.2f}")
-    print(f"Viable asks   : ${max_spend/100:.2f} or less per contract")
-    print(f"Watchlist     : {', '.join(WATCHLIST)}\n")
+    print(f"Viable asks   : ${max_spend/100:.2f} or less per contract\n")
+
+
+# ---------------------------------------------------------------------------
+# Paper trading log helpers
+# ---------------------------------------------------------------------------
+
+def log_scan(candidates: list[dict], date_str: str | None = None,
+             path: str = "paper_trades.json") -> None:
+    """
+    Log today's Barchart scanner results.
+    candidates: list of {symbol, score, rvol, iv, option_ask, notes}
+    Call this every morning regardless of whether you trade.
+    """
+    with open(path) as f:
+        data = json.load(f)
+    data["scan_log"].append({
+        "date": date_str or today_str(),
+        "candidates": candidates,
+    })
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"Scan logged: {len(candidates)} candidates on {date_str or today_str()}")
+
+
+def log_paper_trade(
+    symbol: str, option_type: str, strike: float, expiration: str,
+    contracts: int, entry_price: float, score: int, rationale: str,
+    date_str: str | None = None, path: str = "paper_trades.json"
+) -> None:
+    """Log a paper trade entry. Call at entry time."""
+    with open(path) as f:
+        data = json.load(f)
+    trade = {
+        "id": len(data["paper_trades"]) + 1,
+        "symbol": symbol,
+        "option_type": option_type,
+        "strike": strike,
+        "expiration": expiration,
+        "contracts": contracts,
+        "entry_price": entry_price,
+        "entry_date": date_str or today_str(),
+        "score": score,
+        "rationale": rationale,
+        "exit_price": None,
+        "exit_date": None,
+        "exit_reason": None,
+        "gross_pnl": None,
+        "return_pct": None,
+        "status": "open",
+    }
+    data["paper_trades"].append(trade)
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+    cost = entry_price * 100 * contracts
+    print(f"Paper trade #{trade['id']} logged: {symbol} {option_type.upper()} ${strike} "
+          f"exp {expiration} | {contracts}x @ ${entry_price:.2f} = ${cost:.2f} | score {score}")
+
+
+def close_paper_trade(
+    trade_id: int, exit_price: float, exit_reason: str,
+    date_str: str | None = None, path: str = "paper_trades.json"
+) -> None:
+    """Log a paper trade exit and compute P&L."""
+    with open(path) as f:
+        data = json.load(f)
+    for t in data["paper_trades"]:
+        if t["id"] == trade_id:
+            t["exit_price"] = exit_price
+            t["exit_date"] = date_str or today_str()
+            t["exit_reason"] = exit_reason
+            t["status"] = "closed"
+            gross = (exit_price - t["entry_price"]) * 100 * t["contracts"]
+            ret = (exit_price - t["entry_price"]) / t["entry_price"]
+            t["gross_pnl"] = round(gross, 2)
+            t["return_pct"] = round(ret * 100, 1)
+            print(f"Paper trade #{trade_id} closed: {t['symbol']} | "
+                  f"entry ${t['entry_price']:.2f} → exit ${exit_price:.2f} | "
+                  f"P&L ${gross:+.2f} ({ret:+.1%}) | {exit_reason}")
+            break
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def paper_summary(path: str = "paper_trades.json") -> None:
+    """Print paper trading performance summary."""
+    with open(path) as f:
+        data = json.load(f)
+    trades = [t for t in data["paper_trades"] if t["status"] == "closed"]
+    if not trades:
+        print("No closed paper trades yet.")
+        return
+    wins = [t for t in trades if t["gross_pnl"] > 0]
+    losses = [t for t in trades if t["gross_pnl"] <= 0]
+    total_pnl = sum(t["gross_pnl"] for t in trades)
+    avg_ret = sum(t["return_pct"] for t in trades) / len(trades)
+    print(f"\n{'='*50}")
+    print(f"PAPER TRADING SUMMARY — {data['paper_trading_start']} to {today_str()}")
+    print(f"{'='*50}")
+    print(f"Trades : {len(trades)} ({len(wins)}W / {len(losses)}L)")
+    print(f"Win rate: {len(wins)/len(trades):.1%}")
+    print(f"Avg ret : {avg_ret:+.1f}%")
+    print(f"Total P&L: ${total_pnl:+.2f}")
+    print(f"Scans logged: {len(data['scan_log'])}")
+    print(f"{'='*50}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -364,4 +467,6 @@ def morning_briefing(buying_power: float, date_str: str | None = None) -> None:
 if __name__ == "__main__":
     print(AGENT_INSTRUCTIONS)
     print("\n--- Morning briefing demo ---")
-    morning_briefing(buying_power=150.00, date_str="2026-08-15")
+    morning_briefing(buying_power=188.00, date_str="2026-08-14")
+    print("\n--- Paper trading summary ---")
+    paper_summary()
