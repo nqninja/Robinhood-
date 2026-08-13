@@ -21,7 +21,7 @@ OPTION_WIN_PCT     =  0.80
 OPTION_LOSS_PCT    = -0.35
 OPTION_LEVERAGE    =  4.0    # fallback day-3 exit
 
-STARTING_BALANCE    = 75.0
+STARTING_BALANCE    = 188.0
 POSITION_SIZE_PCT   = 0.25
 MAX_CONTRACT_COST   = 0.80
 MIN_CONTRACT_COST   = 0.15
@@ -508,7 +508,7 @@ def main():
     avg_monthly_ret = avg_monthly / STARTING_BALANCE * 100
 
     ten_pct_needed = STARTING_BALANCE * 0.10
-    print(f"\n10%/month on $75 = ${ten_pct_needed:.2f}/month needed")
+    print(f"\n10%/month on $188 = ${ten_pct_needed:.2f}/month needed")
     print(f"Actual avg monthly P&L: ${avg_monthly:+.2f} ({avg_monthly_ret:+.1f}% of starting capital)")
     print(f"Win rate: {wr:.1f}% (need ~55%+ to be profitable with 80%/-35% payoff)")
 
@@ -523,8 +523,8 @@ def main():
     print(f"Kelly fraction: {kelly*100:.1f}%  (positive = mathematical edge exists)")
 
     # Win rate needed for 10%/month
-    # Assume avg position = 25% of $75 = $18.75
-    # Expected per trade = p*0.80 - (1-p)*0.35; need this × ~4 trades/month × $18.75 ≥ $7.50
+    # Assume avg position = 25% of $188 = $47
+    # Expected per trade = p*0.80 - (1-p)*0.35; need this × ~4 trades/month × $18.75 ≥ $18.80
     # Simplify: p = 0.55 gives E = 0.55*0.8 - 0.45*0.35 = 0.44 - 0.1575 = 0.2825
     print(f"\nWin rate needed for 10%/month (4 trades/month, 25% sizing): ~55%")
     print(f"Win rate we are getting: {wr:.1f}%")
@@ -551,7 +551,7 @@ def main():
     print("\nKey risks NOT captured in backtest:")
     print("  1. IV crush: options lose value even when direction is right")
     print("  2. Bid-ask spread: real fills worse than mid-price (0.05-0.10/contract)")
-    print("  3. Max 1 contract at $75: limits upside to ~$15/trade on a win")
+    print("  3. Max 1 contract at $188: up to ~$37.60 on a win")
     print("  4. Small sample: few A-grade signals in 4 months may not be statistically robust")
     print("  5. Survivorship bias: these 6 symbols were pre-selected for momentum")
     print("=" * 72)
