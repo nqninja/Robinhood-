@@ -91,6 +91,9 @@ class PreTradeFilter:
     # Symbol-specific
     btc_negative_day: bool = False   # MARA only
 
+    # Market cap filter — mid-caps only ($2B–$10B = highest volatility sweet spot)
+    market_cap: float = 0.0          # in dollars (e.g. 4_000_000_000 = $4B)
+
     def run(self) -> tuple[bool, list[str]]:
         """Returns (passes, list_of_failures). Any failure = no trade."""
         failures = []
@@ -135,6 +138,19 @@ class PreTradeFilter:
             failures.append(
                 f"LOW ATR: {self.atr_pct:.1%} < 2% — not enough daily range for options profit"
             )
+
+        # Mid-cap sweet spot: $2B–$10B — max volatility with real liquidity
+        if self.market_cap > 0:
+            MID_CAP_MIN = 2_000_000_000   # $2B
+            MID_CAP_MAX = 10_000_000_000  # $10B
+            if self.market_cap < MID_CAP_MIN:
+                failures.append(
+                    f"SMALL CAP: ${self.market_cap/1e9:.1f}B < $2B — thin options liquidity"
+                )
+            elif self.market_cap > MID_CAP_MAX:
+                failures.append(
+                    f"LARGE CAP: ${self.market_cap/1e9:.1f}B > $10B — too much institutional dampening"
+                )
 
         # Stock must be moving in the same direction as the dominant options activity
         if self.price_direction and self.options_direction:

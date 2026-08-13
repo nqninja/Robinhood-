@@ -22,18 +22,23 @@ ACCOUNT = "628914509"
 # option OI >5k, 1-day change >+2%.
 # ---------------------------------------------------------------------------
 WATCHLIST = [
-    "SOFI",  # IV ~44%, OI 37k — anchor position, best liquidity
-    "MARA",  # IV ~80% — only scan when Bitcoin is green on the day
-    "RIVN",  # $16, high vol — confirm option bid/ask before entry
-    "SOUN",  # $0.21 calls, OI 12k — wait for reversal signal
-    "ACHR",  # eVTOL momentum, $0.38 call, IV 74.8%
-    "JOBY",  # eVTOL companion, $0.36 call, IV 67.4%
+    "SOFI",  # IV ~44%, OI 37k — anchor position, best liquidity | ~$10B cap
+    "MARA",  # IV ~80% — only scan when Bitcoin is green on the day | ~$4B cap
+    "RIVN",  # $16, high vol — cap ~$12B, slightly over limit; re-check before adding
+    "SOUN",  # $0.21 calls, OI 12k — wait for reversal signal | ~$2B cap
+    "ACHR",  # eVTOL momentum, $0.38 call, IV 74.8% | ~$3B cap
+    "JOBY",  # eVTOL companion, $0.36 call, IV 67.4% | ~$3B cap
 ]
+
+# MID-CAP RULE: $2B–$10B market cap ONLY — sweet spot for max volatility + real options liquidity
+#   > $10B: too much institutional dampening, options get expensive
+#   < $2B:  thin options market, wide spreads, manipulation risk
+#   RIVN is borderline (~$12B) — always verify market cap before trading
 
 # Watchlist refresh: run Barchart scanner every Monday + Wednesday 9:45am
 #   Options → Unusual Activity → Stocks
 #   Filters: Price $5–$30 | Avg Vol >10M | Rel Vol >1.5x | IV Rank <50%
-#            Option OI >5,000 | 1-day change >+2%
+#            Option OI >5,000 | 1-day change >+2% | Market Cap $2B–$10B
 # Cross-reference with Stocks → Momentum tab for sector confirmation.
 
 # ---------------------------------------------------------------------------
