@@ -72,6 +72,11 @@ class PreTradeFilter:
     earnings_dte: int   # days until next earnings (-1 = unknown)
     option_cost: float  # per contract (ask price × 100)
     dte: int            # days to expiration on the option
+    bid: float = 0.0    # option bid price
+    ask: float = 0.0    # option ask price
+    open_interest: int = 0
+    delta: float = 0.0  # absolute value (0.0 = not provided)
+    btc_negative_day: bool = False  # for MARA only
 
     def run(self) -> tuple[bool, list[str]]:
         """Returns (passes, list_of_failures)."""
@@ -109,9 +114,35 @@ class PreTradeFilter:
         if self.symbol in AVOID:
             failures.append(f"WRONG VEHICLE: {self.symbol} options too expensive for this account")
 
-        # Hard rule 8: MARA only on Bitcoin up days (IV sits at 80% limit — any adverse move = painful)
-        if self.symbol == "MARA" and hasattr(self, "btc_negative_day") and self.btc_negative_day:
-            failures.append("MARA: Bitcoin down today — skip MARA, IV too high to fight direction")
+        # Hard rule 8: MARA only on Bitcoin up days (IV at 80% limit — can't fight direction)
+        if self.symbol == "MARA" and self.btc_negative_day:
+            failures.append("MARA: Bitcoin down today — skip, IV too high to fight direction")
+
+        # Hard rule 9: bid/ask spread ≤ 15% of mid (wide spread = illiquid trap)
+        if self.bid > 0 and self.ask > 0:
+            mid = (self.bid + self.ask) / 2
+            spread_pct = (self.ask - self.bid) / mid if mid > 0 else 1.0
+            if spread_pct > 0.15:
+                failures.append(
+                    f"SPREAD TOO WIDE: {spread_pct:.0%} (bid ${self.bid:.2f} / ask ${self.ask:.2f}) > 15% max"
+                )
+
+        # Hard rule 10: open interest ≥ 5,000 (real liquidity, not a trap)
+        if self.open_interest > 0 and self.open_interest < 5000:
+            failures.append(
+                f"LOW OPEN INTEREST: {self.open_interest:,} < 5,000 minimum — illiquid contract"
+            )
+
+        # Hard rule 11: delta in target range 0.40–0.65 (not lottery OTM, not deep ITM)
+        if self.delta > 0:
+            if self.delta < 0.30:
+                failures.append(
+                    f"DELTA TOO LOW: {self.delta:.2f} < 0.30 — far OTM lottery contract"
+                )
+            elif self.delta > 0.75:
+                failures.append(
+                    f"DELTA TOO HIGH: {self.delta:.2f} > 0.75 — deep ITM, pay intrinsic not momentum"
+                )
 
         return len(failures) == 0, failures
 
@@ -707,6 +738,10 @@ class MomentumModel:
         earnings_dte: int,
         option_ask: float,
         dte: int,
+        bid: float = 0.0,
+        open_interest: int = 0,
+        delta: float = 0.0,
+        btc_negative_day: bool = False,
     ) -> tuple[bool, list[str]]:
         f = PreTradeFilter(
             date=self.date,
@@ -716,6 +751,11 @@ class MomentumModel:
             earnings_dte=earnings_dte,
             option_cost=option_ask * 100,
             dte=dte,
+            bid=bid,
+            ask=option_ask,
+            open_interest=open_interest,
+            delta=delta,
+            btc_negative_day=btc_negative_day,
         )
         return f.run()
 
