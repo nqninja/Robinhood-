@@ -28,24 +28,16 @@ from typing import Optional
 # Constants
 # ---------------------------------------------------------------------------
 
-# Primary watchlist — options $0.15–$0.80, IV <80%, OI >5k, stock price $5–$30
-# Refreshed via Barchart scanner (Options → Unusual Activity, Price $5-30, RelVol >1.5x, IVR <50%)
-CHEAP_UNIVERSE = [
-    "SOFI",  # IV ~44%, OI 37k — most liquid, best hold
-    "MARA",  # IV ~80% (limit) — only trade on Bitcoin green days
-    "RIVN",  # $16 range, high avg volume — confirm option pricing before entry
-    "SOUN",  # $0.21 calls — cheapest; wait for reversal before entry
-    "ACHR",  # eVTOL momentum, $0.38 call, IV 74.8% — new add
-    "JOBY",  # eVTOL sector companion, $0.36 call, IV 67.4%, OI 4.5k — new add
+# No fixed universe — Barchart scanner finds candidates fresh every day.
+# These are permanently blocked: options too expensive or too liquid for this account.
+AVOID = [
+    "SPY", "QQQ", "NVDA", "AMD", "META", "PLTR", "TSLA", "AMZN", "MSFT", "AAPL",
+    "HOOD",  # stock $98+, ATM calls $5+
+    "IONQ",  # stock $45+, ATM calls $2.50+; re-add if price drops below $20
 ]
 
-# Removed from universe:
-#   HOOD  — stock at $98, ATM calls $5+, incompatible with <$200 account
-#   IONQ  — stock at $45, ATM calls $2.50+; re-add if price drops back below $20
-
-# Never trade these — options too expensive for this account size
-AVOID = ["SPY", "QQQ", "NVDA", "AMD", "META", "PLTR", "TSLA", "AMZN", "MSFT", "AAPL",
-         "HOOD", "IONQ"]
+# Known good names from prior scans — still require fresh daily score ≥ 80 to trade:
+# SOFI, MARA, SOUN, ACHR, JOBY — treat like any other scanner result, not defaults.
 
 # Known macro event dates — update each week
 # Format: "YYYY-MM-DD": "event name"

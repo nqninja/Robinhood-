@@ -11,35 +11,48 @@ and momentum_model.py for all scoring and sizing decisions.
 """
 
 import json
-from momentum_model import MomentumModel, MACRO_CALENDAR, CHEAP_UNIVERSE, calc_vwap, VolumeProfile
+from momentum_model import MomentumModel, MACRO_CALENDAR, AVOID, calc_vwap, VolumeProfile
 
 ACCOUNT = "628914509"
 
 # ---------------------------------------------------------------------------
-# Watchlist — cheap underlyings where options are $0.15–$0.80
-# Refreshed 2026-08-13 via Barchart scanner (Options Unusual Activity +
-# Momentum scan). Criteria: price $5–$30, avg vol >10M, IV rank <50%,
-# option OI >5k, 1-day change >+2%.
-# ---------------------------------------------------------------------------
-WATCHLIST = [
-    "SOFI",  # IV ~44%, OI 37k — anchor position, best liquidity | ~$10B cap
-    "MARA",  # IV ~80% — only scan when Bitcoin is green on the day | ~$4B cap
-    "RIVN",  # $16, high vol — cap ~$12B, slightly over limit; re-check before adding
-    "SOUN",  # $0.21 calls, OI 12k — wait for reversal signal | ~$2B cap
-    "ACHR",  # eVTOL momentum, $0.38 call, IV 74.8% | ~$3B cap
-    "JOBY",  # eVTOL companion, $0.36 call, IV 67.4% | ~$3B cap
+# NO FIXED WATCHLIST — scanner finds the stock fresh every day
+#
+# Philosophy: We do not marry any stock. The market rotates. Momentum moves
+# to different names every week. A fixed watchlist = stale setups + missed
+# opportunities. The scanner finds whoever has the edge TODAY.
+#
+# BARCHART SCANNER — run every morning 9:00 AM ET and weekly Sunday night
+# -------------------------------------------------------------------------
+# Site: barchart.com → Options → Unusual Options Activity
+#
+# FILTERS (set these exactly):
+#   Stock Price:        $5 – $30
+#   Avg Daily Volume:   > 10,000,000 shares
+#   Rel Volume:         > 1.5x
+#   IV Rank (IVR):      < 50%
+#   Option OI:          > 5,000
+#   1-Day Change:       > +2% (calls) or < -2% (puts)
+#   Market Cap:         $2B – $10B  ← mid-cap sweet spot only
+#
+# SECONDARY SCAN — Barchart → Stocks → Momentum
+#   Same filters. Cross-reference: unusual options activity PLUS
+#   stock momentum = highest conviction.
+#
+# OUTPUT: Top 3–5 symbols from scanner each day. Run ALL through
+# pre_trade_check() and score_unusual_activity() before considering entry.
+# Only trade the highest-scoring symbol. Never force a trade if none score 80+.
+#
+# SYMBOLS TO PERMANENTLY AVOID (options unaffordable or too liquid):
+AVOID_ALWAYS = [
+    "SPY", "QQQ", "NVDA", "AMD", "META", "PLTR", "TSLA",
+    "AMZN", "AAPL", "MSFT", "HOOD", "IONQ",
 ]
-
-# MID-CAP RULE: $2B–$10B market cap ONLY — sweet spot for max volatility + real options liquidity
-#   > $10B: too much institutional dampening, options get expensive
-#   < $2B:  thin options market, wide spreads, manipulation risk
-#   RIVN is borderline (~$12B) — always verify market cap before trading
-
-# Watchlist refresh: run Barchart scanner every Monday + Wednesday 9:45am
-#   Options → Unusual Activity → Stocks
-#   Filters: Price $5–$30 | Avg Vol >10M | Rel Vol >1.5x | IV Rank <50%
-#            Option OI >5,000 | 1-day change >+2% | Market Cap $2B–$10B
-# Cross-reference with Stocks → Momentum tab for sector confirmation.
+#
+# KNOWN GOOD NAMES (from prior scans — still require fresh confirmation daily):
+# SOFI, MARA, SOUN, ACHR, JOBY — these showed up on scanner before.
+# Treat them like any other scanner result: still need today's score ≥ 80.
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # Agent instructions
@@ -70,30 +83,34 @@ STEP M2 — ACCOUNT STATE
   get_option_positions(account_number="628914509")
   → if any open option positions exist → run EOD exit check first (see SESSION 3)
 
-STEP M3 — EARNINGS BLACKOUT + SYMBOL-SPECIFIC CHECKS
+STEP M3 — EARNINGS BLACKOUT CHECK
   get_earnings_calendar()
-  For each symbol in WATCHLIST: flag if earnings within 7 days → SKIP that symbol.
-
-  MARA special rule: if Bitcoin is down on the day → skip MARA entirely.
-  MARA IV sits at 79-80% — trading it against crypto direction = certain loss.
-
-  ACHR/JOBY: eVTOL sector moves together. If one is running, check the other too.
+  For each scanner candidate: flag if earnings within 7 days → SKIP that symbol.
+  If MARA appears on scanner and Bitcoin is down → skip MARA.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STEP M4 — FIND THE STOCK  (Barchart unusual activity scan)
+STEP M4 — RUN THE BARCHART SCANNER (fresh every morning, no fixed list)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Check unusual options activity across WATCHLIST:
+  Open barchart.com → Options → Unusual Options Activity
+  Apply EXACTLY these filters:
+    Stock Price:      $5 – $30
+    Avg Daily Vol:    > 10M shares
+    Rel Volume:       > 1.5x
+    IV Rank (IVR):    < 50%
+    Option OI:        > 5,000
+    1-Day Change:     > +2% (for calls) | < -2% (for puts)
+    Market Cap:       $2B – $10B
+
+  Take the TOP 3–5 results. These are today's candidates.
+  IGNORE any symbol in AVOID_ALWAYS list.
+  Do NOT default to prior watchlist. Today's scanner = today's candidates.
+
+  For each candidate, use Robinhood MCP to verify:
     get_option_chains + get_option_quotes for each symbol
-    Look for: volume significantly above normal (Vol/OI ratio > 2x)
-    Identify: are calls or puts dominating?
-    Flag: any far-OTM lottery activity (skip those — not real signals)
-    Result: rank symbols by unusual activity strength
-
-  Barchart criteria to simulate:
-    ✓ Options volume >> normal (Vol/OI > 2x)
-    ✓ Calls dominating → bullish lean
-    ✓ Puts dominating → bearish lean
-    ✗ Skip: random far-OTM strikes with tiny OI
+    Look for: Vol/OI ratio > 2x on a specific strike (not just total chain volume)
+    Identify: calls or puts dominating?
+    Flag: far-OTM lottery activity (tiny OI, delta < 0.20) → skip those rows
+    Result: rank candidates by unusual activity strength
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STEP M5 — ELIMINATE BAD STOCKS
@@ -283,17 +300,20 @@ CIRCUIT BREAKERS
   earnings within 7 days      → skip that symbol
 
 ════════════════════════════════════════════════════════════════════════
-WATCHLIST  {watchlist}
+STOCK SELECTION — SCANNER FIRST, EVERY SINGLE DAY
 ════════════════════════════════════════════════════════════════════════
-  SOFI — IV ~44%, OI 37k, anchor position
-  MARA — IV ~80%, Bitcoin green days only
-  RIVN — $16 range, verify option pricing before entry
-  SOUN — cheapest calls (~$0.21), wait for reversal
-  ACHR — eVTOL momentum, $0.38 call, IV 74.8%
-  JOBY — eVTOL companion, $0.36 call, IV 67.4%
+  There is NO fixed watchlist. Every morning the Barchart scanner finds
+  today's candidates. Prior names (SOFI, MARA, SOUN, ACHR, JOBY) are
+  only relevant if they show up on today's scan. Momentum rotates —
+  never force a trade on a stale name just because it worked before.
 
-  DO NOT trade: SPY, QQQ, NVDA, AMD, META, PLTR, TSLA, AMZN, AAPL, MSFT, HOOD, IONQ
-""".format(watchlist=str(WATCHLIST))
+  PERMANENTLY AVOID: SPY, QQQ, NVDA, AMD, META, PLTR, TSLA, AMZN,
+                     AAPL, MSFT, HOOD, IONQ
+
+  GOLDEN RULE: If the scanner finds nothing scoring 80+, there is no
+  trade today. Sit on your hands. Cash is a position. The next A+ setup
+  will come — do not manufacture one.
+"""
 
 
 # ---------------------------------------------------------------------------
