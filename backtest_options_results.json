@@ -1,28 +1,41 @@
 {
   "summary": {
     "start_balance": 188.31,
-    "end_balance": 1480.31,
-    "total_pnl": 1292.0,
-    "total_return_pct": 686.1,
+    "end_balance": 9315.31,
+    "total_pnl": 9127.0,
+    "total_return_pct": 4846.8,
     "total_setups": 38,
-    "passed_gate": 6,
-    "rejected": 32,
-    "win_rate": "6/6 (100%)",
-    "avg_win": 215.33,
-    "avg_loss": 0,
-    "expectancy_per_trade": 215.33,
-    "max_single_loss": 65.0,
-    "max_single_win": 440.0
+    "passed_gate": 16,
+    "rejected": 22,
+    "win_rate": "14/16 (88%)",
+    "avg_win": 723.93,
+    "avg_loss": -504.0,
+    "expectancy_per_trade": 570.44,
+    "max_single_loss": -903.0,
+    "max_single_win": 2754.0
   },
   "trades": [
     {
       "symbol": "SOFI",
       "entry_date": "2026-06-15",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 72 < 75",
-      "score": 72,
-      "pnl": 0,
-      "balance": 188.31
+      "action": "TRADE",
+      "catalyst": "analyst_upgrade",
+      "direction": "call",
+      "strike": 19.0,
+      "dte": 22,
+      "premium": 0.74,
+      "contracts": 1,
+      "cost_basis": 74.0,
+      "exit_price": 1.34,
+      "exit_reason": "target_1_80pct",
+      "gross_pnl": 60.0,
+      "return_pct": 81.1,
+      "score": 82,
+      "grade": "STRONG \u2014 TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 36.7,
+      "balance": 248.31
     },
     {
       "symbol": "MARA",
@@ -31,34 +44,60 @@
       "reason": "No valid contract found (premium too high or no liquidity)",
       "score": 0,
       "pnl": 0,
-      "balance": 188.31
+      "balance": 248.31
     },
     {
       "symbol": "ACHR",
       "entry_date": "2026-06-28",
       "action": "BELOW_THRESHOLD",
-      "reason": "Score 64 < 75",
-      "score": 64,
+      "reason": "Score 74 < 75",
+      "score": 74,
       "pnl": 0,
-      "balance": 188.31
+      "balance": 248.31
     },
     {
       "symbol": "SOFI",
       "entry_date": "2026-07-10",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 70 < 75",
-      "score": 70,
-      "pnl": 0,
-      "balance": 188.31
+      "action": "TRADE",
+      "catalyst": "guidance_up",
+      "direction": "call",
+      "strike": 18.0,
+      "dte": 18,
+      "premium": 0.42,
+      "contracts": 1,
+      "cost_basis": 42.0,
+      "exit_price": 0.76,
+      "exit_reason": "target_1_80pct",
+      "gross_pnl": 34.0,
+      "return_pct": 81.0,
+      "score": 80,
+      "grade": "STRONG \u2014 TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 35.1,
+      "balance": 282.31
     },
     {
       "symbol": "JOBY",
       "entry_date": "2026-07-05",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 67 < 75",
-      "score": 67,
-      "pnl": 0,
-      "balance": 188.31
+      "action": "TRADE",
+      "catalyst": "ma_confirmed",
+      "direction": "call",
+      "strike": 9.0,
+      "dte": 25,
+      "premium": 0.73,
+      "contracts": 1,
+      "cost_basis": 73.0,
+      "exit_price": 2.09,
+      "exit_reason": "target_2_150pct",
+      "gross_pnl": 136.0,
+      "return_pct": 186.3,
+      "score": 77,
+      "grade": "TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 40.0,
+      "balance": 418.31
     },
     {
       "symbol": "MARA",
@@ -75,10 +114,12 @@
       "exit_reason": "target_1_80pct",
       "gross_pnl": 65.0,
       "return_pct": 98.5,
-      "score": 75,
-      "grade": "WATCH ONLY",
+      "score": 85,
+      "grade": "STRONG \u2014 TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
       "iv_rank": 28.6,
-      "balance": 253.31
+      "balance": 483.31
     },
     {
       "symbol": "SOUN",
@@ -95,19 +136,34 @@
       "exit_reason": "hard_exit_200pct",
       "gross_pnl": 144.0,
       "return_pct": 200.0,
-      "score": 77,
-      "grade": "WATCH ONLY",
+      "score": 87,
+      "grade": "STRONG \u2014 TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
       "iv_rank": 35.3,
-      "balance": 397.31
+      "balance": 627.31
     },
     {
       "symbol": "ACHR",
       "entry_date": "2026-07-30",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 69 < 75",
-      "score": 69,
-      "pnl": 0,
-      "balance": 397.31
+      "action": "TRADE",
+      "catalyst": "fda_approval",
+      "direction": "call",
+      "strike": 10.0,
+      "dte": 28,
+      "premium": 0.46,
+      "contracts": 3,
+      "cost_basis": 138.0,
+      "exit_price": 1.38,
+      "exit_reason": "hard_exit_200pct",
+      "gross_pnl": 276.0,
+      "return_pct": 200.0,
+      "score": 79,
+      "grade": "TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 47.4,
+      "balance": 903.31
     },
     {
       "symbol": "SOFI",
@@ -118,25 +174,27 @@
       "strike": 20.0,
       "dte": 21,
       "premium": 0.69,
-      "contracts": 1,
-      "cost_basis": 69.0,
+      "contracts": 3,
+      "cost_basis": 207.0,
       "exit_price": 1.96,
       "exit_reason": "target_2_150pct",
-      "gross_pnl": 127.0,
+      "gross_pnl": 381.0,
       "return_pct": 184.1,
-      "score": 86,
-      "grade": "STRONG \u2014 TRADE",
+      "score": 96,
+      "grade": "EXCEPTIONAL",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
       "iv_rank": 36.7,
-      "balance": 524.31
+      "balance": 1284.31
     },
     {
       "symbol": "JOBY",
       "entry_date": "2026-06-20",
       "action": "BELOW_THRESHOLD",
-      "reason": "Score 64 < 75",
-      "score": 64,
+      "reason": "Score 74 < 75",
+      "score": 74,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1284.31
     },
     {
       "symbol": "MARA",
@@ -145,7 +203,7 @@
       "reason": "Ambiguous catalyst \u2014 no directional edge",
       "score": 0,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1284.31
     },
     {
       "symbol": "SOFI",
@@ -154,16 +212,29 @@
       "reason": "No valid contract found (premium too high or no liquidity)",
       "score": 0,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1284.31
     },
     {
       "symbol": "ACHR",
       "entry_date": "2026-08-06",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 70 < 75",
-      "score": 70,
-      "pnl": 0,
-      "balance": 524.31
+      "action": "TRADE",
+      "catalyst": "earnings_miss",
+      "direction": "put",
+      "strike": 7.0,
+      "dte": 16,
+      "premium": 0.42,
+      "contracts": 7,
+      "cost_basis": 294.0,
+      "exit_price": 0.27,
+      "exit_reason": "stop_loss",
+      "gross_pnl": -105.0,
+      "return_pct": -35.7,
+      "score": 80,
+      "grade": "STRONG \u2014 TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 49.3,
+      "balance": 1179.31
     },
     {
       "symbol": "SOUN",
@@ -172,7 +243,7 @@
       "reason": "No valid contract found (premium too high or no liquidity)",
       "score": 0,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1179.31
     },
     {
       "symbol": "JOBY",
@@ -181,16 +252,16 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1179.31
     },
     {
       "symbol": "SOFI",
       "entry_date": "2026-07-02",
       "action": "BELOW_THRESHOLD",
-      "reason": "Score 63 < 75",
-      "score": 63,
+      "reason": "Score 73 < 75",
+      "score": 73,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1179.31
     },
     {
       "symbol": "MARA",
@@ -199,45 +270,47 @@
       "reason": "No valid contract found (premium too high or no liquidity)",
       "score": 0,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1179.31
     },
     {
       "symbol": "ACHR",
       "entry_date": "2026-06-10",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 66 < 75",
-      "score": 66,
-      "pnl": 0,
-      "balance": 524.31
+      "action": "TRADE",
+      "catalyst": "ma_confirmed",
+      "direction": "call",
+      "strike": 8.0,
+      "dte": 21,
+      "premium": 0.8,
+      "contracts": 3,
+      "cost_basis": 240.0,
+      "exit_price": 1.82,
+      "exit_reason": "target_1_80pct",
+      "gross_pnl": 306.0,
+      "return_pct": 127.5,
+      "score": 76,
+      "grade": "TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 41.2,
+      "balance": 1485.31
     },
     {
       "symbol": "SOUN",
       "entry_date": "2026-07-20",
       "action": "BELOW_THRESHOLD",
-      "reason": "Score 62 < 75",
-      "score": 62,
+      "reason": "Score 72 < 75",
+      "score": 72,
       "pnl": 0,
-      "balance": 524.31
+      "balance": 1485.31
     },
     {
       "symbol": "JOBY",
       "entry_date": "2026-08-07",
-      "action": "TRADE",
-      "catalyst": "earnings_beat",
-      "direction": "call",
-      "strike": 10.0,
-      "dte": 19,
-      "premium": 0.62,
-      "contracts": 2,
-      "cost_basis": 124.0,
-      "exit_price": 1.6,
-      "exit_reason": "target_2_150pct",
-      "gross_pnl": 196.0,
-      "return_pct": 158.1,
-      "score": 76,
-      "grade": "WATCH ONLY",
-      "iv_rank": 37.5,
-      "balance": 720.31
+      "action": "WEEKLY_LIMIT",
+      "reason": "2 trades already this week",
+      "score": 86,
+      "pnl": 0,
+      "balance": 1485.31
     },
     {
       "symbol": "SOFI",
@@ -246,7 +319,7 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 720.31
+      "balance": 1485.31
     },
     {
       "symbol": "MARA",
@@ -255,7 +328,7 @@
       "reason": "Catalyst 8 days old \u2014 stale",
       "score": 0,
       "pnl": 0,
-      "balance": 720.31
+      "balance": 1485.31
     },
     {
       "symbol": "ACHR",
@@ -264,7 +337,7 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 720.31
+      "balance": 1485.31
     },
     {
       "symbol": "SOUN",
@@ -273,7 +346,7 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 720.31
+      "balance": 1485.31
     },
     {
       "symbol": "JOBY",
@@ -282,7 +355,7 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 720.31
+      "balance": 1485.31
     },
     {
       "symbol": "ACHR",
@@ -293,25 +366,40 @@
       "strike": 8.0,
       "dte": 21,
       "premium": 0.32,
-      "contracts": 5,
-      "cost_basis": 160.0,
+      "contracts": 11,
+      "cost_basis": 352.0,
       "exit_price": 0.96,
       "exit_reason": "hard_exit_200pct",
-      "gross_pnl": 320.0,
+      "gross_pnl": 704.0,
       "return_pct": 200.0,
-      "score": 80,
-      "grade": "STRONG \u2014 TRADE",
+      "score": 90,
+      "grade": "EXCEPTIONAL",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
       "iv_rank": 42.9,
-      "balance": 1040.31
+      "balance": 2189.31
     },
     {
       "symbol": "SOUN",
       "entry_date": "2026-06-03",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 68 < 75",
-      "score": 68,
-      "pnl": 0,
-      "balance": 1040.31
+      "action": "TRADE",
+      "catalyst": "ma_confirmed",
+      "direction": "call",
+      "strike": 8.0,
+      "dte": 24,
+      "premium": 0.64,
+      "contracts": 8,
+      "cost_basis": 512.0,
+      "exit_price": 1.79,
+      "exit_reason": "target_2_150pct",
+      "gross_pnl": 920.0,
+      "return_pct": 179.7,
+      "score": 78,
+      "grade": "TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 37.5,
+      "balance": 3109.31
     },
     {
       "symbol": "JOBY",
@@ -320,16 +408,29 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 1040.31
+      "balance": 3109.31
     },
     {
       "symbol": "ACHR",
       "entry_date": "2026-07-11",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 66 < 75",
-      "score": 66,
-      "pnl": 0,
-      "balance": 1040.31
+      "action": "TRADE",
+      "catalyst": "analyst_upgrade",
+      "direction": "call",
+      "strike": 8.0,
+      "dte": 25,
+      "premium": 0.53,
+      "contracts": 14,
+      "cost_basis": 742.0,
+      "exit_price": 0.97,
+      "exit_reason": "target_1_80pct",
+      "gross_pnl": 616.0,
+      "return_pct": 83.0,
+      "score": 76,
+      "grade": "TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 39.7,
+      "balance": 3725.31
     },
     {
       "symbol": "SOUN",
@@ -340,25 +441,40 @@
       "strike": 10.0,
       "dte": 14,
       "premium": 0.44,
-      "contracts": 5,
-      "cost_basis": 220.0,
+      "contracts": 21,
+      "cost_basis": 924.0,
       "exit_price": 1.32,
       "exit_reason": "hard_exit_200pct",
-      "gross_pnl": 440.0,
+      "gross_pnl": 1848.0,
       "return_pct": 200.0,
-      "score": 86,
-      "grade": "STRONG \u2014 TRADE",
+      "score": 96,
+      "grade": "EXCEPTIONAL",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
       "iv_rank": 41.2,
-      "balance": 1480.31
+      "balance": 5573.31
     },
     {
       "symbol": "JOBY",
       "entry_date": "2026-05-28",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 72 < 75",
-      "score": 72,
-      "pnl": 0,
-      "balance": 1480.31
+      "action": "TRADE",
+      "catalyst": "ma_confirmed",
+      "direction": "call",
+      "strike": 10.0,
+      "dte": 21,
+      "premium": 0.51,
+      "contracts": 27,
+      "cost_basis": 1377.0,
+      "exit_price": 1.53,
+      "exit_reason": "hard_exit_200pct",
+      "gross_pnl": 2754.0,
+      "return_pct": 200.0,
+      "score": 82,
+      "grade": "STRONG \u2014 TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 36.8,
+      "balance": 8327.31
     },
     {
       "symbol": "ACHR",
@@ -367,16 +483,29 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 1480.31
+      "balance": 8327.31
     },
     {
       "symbol": "SOUN",
       "entry_date": "2026-07-22",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 69 < 75",
-      "score": 69,
-      "pnl": 0,
-      "balance": 1480.31
+      "action": "TRADE",
+      "catalyst": "analyst_upgrade",
+      "direction": "call",
+      "strike": 9.0,
+      "dte": 28,
+      "premium": 0.34,
+      "contracts": 61,
+      "cost_basis": 2074.0,
+      "exit_price": 0.65,
+      "exit_reason": "target_1_80pct",
+      "gross_pnl": 1891.0,
+      "return_pct": 91.2,
+      "score": 79,
+      "grade": "TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 40.0,
+      "balance": 10218.31
     },
     {
       "symbol": "JOBY",
@@ -385,7 +514,7 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 1480.31
+      "balance": 10218.31
     },
     {
       "symbol": "ACHR",
@@ -394,25 +523,38 @@
       "reason": "No confirmed catalyst \u2014 automatic disqualifier",
       "score": 0,
       "pnl": 0,
-      "balance": 1480.31
+      "balance": 10218.31
     },
     {
       "symbol": "SOUN",
       "entry_date": "2026-05-06",
-      "action": "BELOW_THRESHOLD",
-      "reason": "Score 68 < 75",
-      "score": 68,
-      "pnl": 0,
-      "balance": 1480.31
+      "action": "TRADE",
+      "catalyst": "earnings_miss",
+      "direction": "put",
+      "strike": 9.0,
+      "dte": 14,
+      "premium": 0.59,
+      "contracts": 43,
+      "cost_basis": 2537.0,
+      "exit_price": 0.38,
+      "exit_reason": "stop_loss",
+      "gross_pnl": -903.0,
+      "return_pct": -35.6,
+      "score": 78,
+      "grade": "TRADE",
+      "xgb_win_prob": 0.937,
+      "xgb_bonus": 10,
+      "iv_rank": 39.0,
+      "balance": 9315.31
     },
     {
       "symbol": "JOBY",
       "entry_date": "2026-05-15",
       "action": "BELOW_THRESHOLD",
-      "reason": "Score 64 < 75",
-      "score": 64,
+      "reason": "Score 74 < 75",
+      "score": 74,
       "pnl": 0,
-      "balance": 1480.31
+      "balance": 9315.31
     },
     {
       "symbol": "ACHR",
@@ -421,7 +563,7 @@
       "reason": "Ambiguous catalyst \u2014 no directional edge",
       "score": 0,
       "pnl": 0,
-      "balance": 1480.31
+      "balance": 9315.31
     }
   ]
 }
