@@ -14,6 +14,14 @@ from enum import Enum
 from typing import Optional
 from pathlib import Path
 
+try:
+    import numpy as np
+    import xgboost as xgb
+    from sklearn.preprocessing import LabelEncoder
+    _XGB_AVAILABLE = True
+except ImportError:
+    _XGB_AVAILABLE = False
+
 # ─────────────────────────────────────────────
 # CONSTANTS
 # ─────────────────────────────────────────────
@@ -134,17 +142,19 @@ class ContractSpec:
 
 @dataclass
 class ScoreBreakdown:
-    catalyst_quality:   int = 0
-    catalyst_timing:    int = 0
-    earnings_setup:     int = 0
-    iv_opportunity:     int = 0
-    expected_vs_hist:   int = 0
-    liquidity:          int = 0
-    dte_score:          int = 0
-    delta_score:        int = 0
-    theta_score:        int = 0
-    rr_score:           int = 0
-    flow_confirm:       int = 0
+    catalyst_quality:   int   = 0
+    catalyst_timing:    int   = 0
+    earnings_setup:     int   = 0
+    iv_opportunity:     int   = 0
+    expected_vs_hist:   int   = 0
+    liquidity:          int   = 0
+    dte_score:          int   = 0
+    delta_score:        int   = 0
+    theta_score:        int   = 0
+    rr_score:           int   = 0
+    flow_confirm:       int   = 0
+    xgb_bonus:          int   = 0   # 0-10 pts from XGBoost win probability
+    xgb_win_prob:       float = 0.5 # raw probability from model
 
     @property
     def total(self) -> int:
@@ -154,13 +164,15 @@ class ScoreBreakdown:
             self.expected_vs_hist, self.liquidity,
             self.dte_score, self.delta_score,
             self.theta_score, self.rr_score, self.flow_confirm,
+            self.xgb_bonus,
         ])
 
     def grade(self) -> str:
         t = self.total
         if t >= 90: return "EXCEPTIONAL"
         if t >= 80: return "STRONG — TRADE"
-        if t >= 70: return "WATCH ONLY"
+        if t >= 75: return "TRADE"
+        if t >= 65: return "WATCH ONLY"
         return "NO TRADE"
 
 @dataclass
@@ -555,6 +567,12 @@ def score_setup(
     vol_oi_ratio:    float    = 1.0,
     sweep_direction: str      = "neutral",
     earnings_profile: Optional[EarningsProfile] = None,
+    # XGBoost inputs (optional — falls back to 0.5 if not provided)
+    iv_lo:           float = 0.0,
+    iv_hi:           float = 0.0,
+    earnings_beats:  int   = 0,
+    whisper_edge:    float = 0.0,
+    days_ago:        int   = 0,
 ) -> ScoreBreakdown:
     s = ScoreBreakdown()
 
@@ -585,6 +603,30 @@ def score_setup(
             earnings_profile.whisper_vs_consensus,
             iv_data.iv_rank,
         )
+
+    # XGBoost win-probability bonus (0-10 pts, replaces/augments earnings_setup when available)
+    if _XGB_AVAILABLE and _xgb_model is not None:
+        win_prob = predict_win_prob(
+            iv=iv_data.current_iv,
+            hv30=iv_data.hv_30,
+            iv_lo=iv_lo if iv_lo > 0 else iv_data.current_iv * 0.5,
+            iv_hi=iv_hi if iv_hi > 0 else iv_data.current_iv * 1.5,
+            avg_catalyst_move=iv_data.avg_catalyst_move,
+            straddle=iv_data.expected_move,
+            stock_price=contract.strike,  # proxy for stock price
+            dte=contract.dte,
+            vol_oi_ratio=vol_oi_ratio,
+            sweep_bull=(sweep_direction == "bull"),
+            earnings_beats=earnings_beats,
+            whisper_edge=whisper_edge,
+            catalyst_type=catalyst.type.value,
+            days_ago=days_ago,
+        )
+        s.xgb_win_prob  = win_prob
+        s.xgb_bonus     = xgb_score_bonus(win_prob)
+    else:
+        s.xgb_win_prob  = 0.5
+        s.xgb_bonus     = 0
 
     return s
 
@@ -911,6 +953,9 @@ def simulate_trade(
     return round(current_price, 2), "dte_stop"
 
 def run_backtest(balance_start: float = ACCOUNT_BALANCE) -> dict:
+    # Train XGBoost on full dataset before scoring
+    train_xgb_model(HISTORICAL_SETUPS)
+
     balance    = balance_start
     results    = []
     passed_gate = 0
@@ -962,6 +1007,9 @@ def run_backtest(balance_start: float = ACCOUNT_BALANCE) -> dict:
             catalyst, iv_data, contract, direction,
             compute_rr(contract.premium, STOP_PCT, TARGET_1_PCT),
             vol_oi, sweep_dir, ep,
+            iv_lo=iv_lo, iv_hi=iv_hi,
+            earnings_beats=beats, whisper_edge=whisper,
+            days_ago=days_ago,
         )
 
         if score.total < SCORE_TRADE:
@@ -1013,6 +1061,8 @@ def run_backtest(balance_start: float = ACCOUNT_BALANCE) -> dict:
             "return_pct":   ret_pct,
             "score":        score.total,
             "grade":        score.grade(),
+            "xgb_win_prob": score.xgb_win_prob,
+            "xgb_bonus":    score.xgb_bonus,
             "iv_rank":      iv_data.iv_rank,
             "balance":      balance,
         })
@@ -1131,15 +1181,16 @@ def print_performance(results: dict) -> None:
     print(f"  Risk of Ruin:        {ror:.1f}%")
 
     print("\n  INDIVIDUAL TRADES:")
-    print(f"  {'Date':<12} {'Sym':<6} {'Dir':<5} {'Score':>5} {'Premium':>7} {'Exit':>7} {'Return':>7} {'P&L':>7}  Reason")
-    print("  " + "─"*85)
+    print(f"  {'Date':<12} {'Sym':<6} {'Dir':<5} {'Score':>5} {'XGB%':>5} {'Premium':>7} {'Exit':>7} {'Return':>7} {'P&L':>7}  Reason")
+    print("  " + "─"*92)
     for t in results["trades"]:
         if t["action"] == "TRADE":
-            print(f"  {t['entry_date']:<12} {t['symbol']:<6} {t['direction']:<5} {t['score']:>5} "
+            xgb_pct = f"{t.get('xgb_win_prob', 0.5)*100:.0f}%"
+            print(f"  {t['entry_date']:<12} {t['symbol']:<6} {t['direction']:<5} {t['score']:>5} {xgb_pct:>5} "
                   f"${t['premium']:>5.2f}  ${t['exit_price']:>5.2f}  {t['return_pct']:>+6.1f}%  "
                   f"${t['gross_pnl']:>+7.2f}  {t['exit_reason']}")
         elif t["action"] in ("REJECTED", "BELOW_THRESHOLD", "WEEKLY_LIMIT"):
-            print(f"  {t['entry_date']:<12} {t['symbol']:<6} {'—':<5} {t['score']:>5}  "
+            print(f"  {t['entry_date']:<12} {t['symbol']:<6} {'—':<5} {t['score']:>5}  {'':>5}"
                   f"{'':>7}  {'':>7}  {'':>7}  {'':>8}  ✗ {t['reason']}")
 
     # Exit reason breakdown
@@ -1165,7 +1216,131 @@ def print_performance(results: dict) -> None:
 
 
 # ─────────────────────────────────────────────
-# MODULE 18: DAILY BRIEF (Alert Engine)
+# MODULE 18: XGBOOST WIN-PROBABILITY MODEL
+# ─────────────────────────────────────────────
+
+# Feature names used for training
+_XGB_FEATURES = [
+    "iv", "hv30", "iv_rank_approx", "avg_catalyst_move",
+    "straddle", "stock_price", "dte", "vol_oi_ratio",
+    "sweep_bull", "earnings_beats", "whisper_edge",
+    "catalyst_instant",  # 1 if earnings/FDA/M&A, 0 if gradual
+    "days_ago",
+]
+
+# Catalyst types treated as "instant" movers
+_INSTANT_TYPES = {"earnings_beat", "earnings_miss", "fda_approval", "fda_rejection", "ma_confirmed"}
+
+_xgb_model: "xgb.XGBClassifier | None" = None
+
+
+def _build_feature_row(setup: tuple) -> list[float]:
+    """Extract XGBoost feature vector from a HISTORICAL_SETUPS row."""
+    (symbol, cat_type, news, days_ago, price, iv, hv30,
+     iv_lo, iv_hi, avg_move, straddle, mktcap_b,
+     dte, vol_oi, sweep, eb, whisper, actual_move, entry_date) = setup
+
+    iv_range = (iv_hi - iv_lo) if iv_hi > iv_lo else 0.01
+    iv_rank_approx = max(0.0, min(1.0, (iv - iv_lo) / iv_range))
+    sweep_bull = 1.0 if sweep == "bull" else 0.0
+    catalyst_instant = 1.0 if cat_type in _INSTANT_TYPES else 0.0
+
+    return [
+        iv, hv30, iv_rank_approx, avg_move,
+        straddle, price, float(dte), vol_oi,
+        sweep_bull, float(eb), float(whisper),
+        catalyst_instant, float(days_ago),
+    ]
+
+
+def train_xgb_model(setups: list[tuple] | None = None) -> None:
+    """Train (or retrain) XGBoost classifier on backtest dataset."""
+    global _xgb_model
+    if not _XGB_AVAILABLE:
+        print("XGBoost not available — skipping ML training")
+        return
+
+    data = setups or HISTORICAL_SETUPS
+    X, y = [], []
+    for row in data:
+        actual_move = row[17]
+        direction   = row[14]  # "bull" / "bear" / "neutral"  (index 14 = sweep)
+        # Win = option would have made money
+        if direction == "bull":
+            win = 1 if actual_move > 0.05 else 0
+        elif direction == "bear":
+            win = 1 if actual_move < -0.05 else 0
+        else:
+            continue  # neutral setups skipped (system rejects them anyway)
+        X.append(_build_feature_row(row))
+        y.append(win)
+
+    if len(X) < 5:
+        print("Too few samples to train XGBoost")
+        return
+
+    _xgb_model = xgb.XGBClassifier(
+        n_estimators=50,
+        max_depth=3,
+        learning_rate=0.1,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        use_label_encoder=False,
+        eval_metric="logloss",
+        random_state=42,
+        verbosity=0,
+    )
+    _xgb_model.fit(np.array(X, dtype=float), np.array(y))
+    print(f"XGBoost trained on {len(X)} setups  "
+          f"({sum(y)} wins / {len(y)-sum(y)} losses)")
+
+
+def predict_win_prob(
+    iv: float,
+    hv30: float,
+    iv_lo: float,
+    iv_hi: float,
+    avg_catalyst_move: float,
+    straddle: float,
+    stock_price: float,
+    dte: int,
+    vol_oi_ratio: float,
+    sweep_bull: bool,
+    earnings_beats: int,
+    whisper_edge: float,
+    catalyst_type: str,
+    days_ago: int,
+) -> float:
+    """Return win probability [0..1] from XGBoost, or 0.5 if model not ready."""
+    if not _XGB_AVAILABLE or _xgb_model is None:
+        return 0.5
+
+    iv_range = (iv_hi - iv_lo) if iv_hi > iv_lo else 0.01
+    iv_rank_approx = max(0.0, min(1.0, (iv - iv_lo) / iv_range))
+    row = [
+        iv, hv30, iv_rank_approx, avg_catalyst_move,
+        straddle, stock_price, float(dte), vol_oi_ratio,
+        1.0 if sweep_bull else 0.0,
+        float(earnings_beats), float(whisper_edge),
+        1.0 if catalyst_type in _INSTANT_TYPES else 0.0,
+        float(days_ago),
+    ]
+    prob = float(_xgb_model.predict_proba(np.array([row], dtype=float))[0, 1])
+    return round(prob, 3)
+
+
+def xgb_score_bonus(win_prob: float) -> int:
+    """Convert XGBoost win probability into a score bonus (0-10 points)."""
+    if win_prob >= 0.80: return 10
+    if win_prob >= 0.70: return 8
+    if win_prob >= 0.60: return 6
+    if win_prob >= 0.50: return 4
+    if win_prob >= 0.40: return 2
+    return 0
+
+
+# ─────────────────────────────────────────────
+# MODULE 19: DAILY BRIEF (Alert Engine)
 # ─────────────────────────────────────────────
 def daily_brief(
     candidates: list[dict],
