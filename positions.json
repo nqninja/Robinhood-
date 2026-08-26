@@ -5,7 +5,7 @@
   "daily_loss": 0,
   "consecutive_losses": 4,
   "intraday_trades_today": 0,
-  "strategy": "Scanner-First Cheap Momentum Options — 10%/month target",
+  "strategy": "Small Cap Momentum Beast — catalyst-driven share trading",
   "account_summary": {
     "starting_balance": 220.00,
     "current_balance_approx": 188.31,
@@ -27,40 +27,35 @@
     }
   },
   "new_system": {
-    "name": "Scanner-First Cheap Momentum Options — 10%/month target",
-    "goal": "Compound $188 → $500 → $1k → $5k via 1-2 high-conviction scanner trades per week",
-    "rationale": "NO fixed watchlist. Barchart scanner finds today's candidates daily. Options $0.15-$0.80/contract, mid-cap $2B-$10B only, IV <80%, score 80+ required. Template: SOFI 7/31 (+139% in 3 days).",
+    "name": "Small Cap Momentum Beast",
+    "goal": "Compound $188 → $500 → $1k → $5k by riding catalyst-driven small cap momentum in shares",
+    "rationale": "Small cap options are illiquid garbage. Buy shares instead. $2-$20 stocks mean we can own real size with $200. One 20% move on $100 = $20 gain. Three wins/month = 30%+ return.",
+    "scanner": {
+      "price": "$2–$20",
+      "avg_volume_30d": "≥100K",
+      "relative_volume": "≥3x",
+      "pct_change": "≥+5%",
+      "scan_id": "5c159e2a-de40-46ae-8b8e-1a92e9ad068f"
+    },
     "hard_rules": {
-      "no_trade_days": ["CPI", "FOMC", "NFP", "PPI", "earnings day for the underlying", "day before earnings"],
-      "max_position_size": "25% of buying power per trade (~$47 at current balance)",
-      "max_iv": "80% — no exceptions",
-      "min_dte": "7 days minimum",
-      "max_dte": "45 days maximum",
-      "stop_loss": "35% of premium paid",
-      "day2_flat_exit": "If by EOD Day 2 position is between -15% and +40%, exit — don't let theta bleed a stalled trade",
-      "profit_target": "80% — exit here, do not hold through fading momentum",
-      "hard_exit": "100% gain — take it no matter what",
-      "max_trades_per_week": 2,
-      "account_floor": "$50 buying power — no new trades below this",
-      "min_score": "80 (A+) — no exceptions",
-      "confluence_required": "ORB + intraday VWAP + prev-day AVWAP + gap must all agree",
-      "market_cap": "$2B–$10B only — mid-cap sweet spot"
-    },
-    "universe": {
-      "approach": "SCANNER-FIRST — Barchart finds candidates fresh every morning. No fixed list.",
-      "scanner": "barchart.com → Options → Unusual Activity: Price $5-30, AvgVol >10M, RelVol >1.5x, IVR <50%, OI >5k, 1d chg >+2%, Market Cap $2B-$10B",
-      "known_good_names": ["SOFI", "MARA", "SOUN", "ACHR", "JOBY"],
-      "note": "Known good names still require fresh daily score ≥80 to trade. Not defaults — just prior scanner hits.",
-      "avoid_always": ["SPY", "QQQ", "NVDA", "AMD", "META", "PLTR", "TSLA", "AMZN", "AAPL", "MSFT", "HOOD", "IONQ", "RIVN"]
-    },
-    "growth_projection": {
-      "month_1": 207,
-      "month_3": 250,
-      "month_6": 333,
-      "month_12": 590,
-      "month_24": 1851,
-      "month_36": 5813,
-      "note": "At 10%/month compounded. Only need 1-2 winning trades/month."
+      "catalyst_required": "News, FDA, contract, upgrade, earnings beat — NO catalyst = NO trade, ever",
+      "no_trade_conditions": [
+        "Already up >20% before entry — chasing is forbidden",
+        "Market cap <$50M — manipulation risk",
+        "Bid-ask spread >2% of stock price",
+        "No identifiable catalyst",
+        "Market is red (SPY down >0.5%) unless the setup is a confirmed short"
+      ],
+      "entry": "Stock up ≥5% on ≥3x volume, holding above VWAP, on a pullback to first support in first 90 min",
+      "position_size": "Max 50% of buying power per trade (~$100 at current balance)",
+      "stop_loss": "8% below entry — hard stop, no exceptions",
+      "profit_targets": {
+        "scale_1": "Sell 50% at +15%",
+        "scale_2": "Move stop to breakeven on remainder",
+        "scale_3": "Exit rest at +30% or EOD whichever comes first"
+      },
+      "account_floor": "$50 — no new trades below this",
+      "max_trades_per_week": 3
     }
   },
   "positions": [],
